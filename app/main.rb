@@ -6,7 +6,7 @@ def tick args
   args.outputs.labels << [ 580, 520, "#{args.state.count}" ]
   args.outputs.labels << [ 580, 500, 'Hi World!' ]
   args.outputs.labels << [ 640, 460, 'Go to docs/docs.html and read it!', 5, 1 ]
-  args.outputs.sprites << [ args.state.x, args.state.y, 128, 101, 'dragon-0.png' ]
+  args.outputs.sprites << [ args.state.x, args.state.y, 128, 101, 'sprites/dragon-0.png' ]
 
   if args.inputs.mouse.click
     args.state.x = args.inputs.mouse.x
