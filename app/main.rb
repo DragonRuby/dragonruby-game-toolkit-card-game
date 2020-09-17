@@ -1,19 +1,28 @@
 def tick args
-  args.state.playerX ||= 5
-  args.state.playerY ||= 100
-  args.state.count ||= 0
-  args.outputs.labels << [ 580, 400, "#{args.state.x}, #{args.state.y}"]
-  args.outputs.labels << [ 580, 520, "#{args.state.count}" ]
-  args.outputs.labels << [ 580, 500, 'Hi World!' ]
-  args.outputs.labels << [ 640, 460, 'Go to docs/docs.html and read it!', 5, 1 ]
-  args.outputs.sprites << [ args.state.x, args.state.y, 128, 101, 'dragon-0.png' ]
+  args.state.health ||= 100
+  args.state.redX ||= 200
+  args.state.greenX ||= 500
+  args.state.greenY ||= 100
+  args.state.redY ||= 100
+  args.outputs.labels << [ 580, 500, "Health: #{args.state.health}" ]
+  redCard = [ args.state.redX, args.state.redY, 128, 128, 'sprites/hexagon-red.png' ]
+  greenCard = [ args.state.greenX, args.state.greenY, 128, 128, 'sprites/hexagon-green.png' ]
+  args.outputs.sprites << redCard
+  args.outputs.sprites << greenCard
 
   if args.inputs.mouse.click
-    args.state.x = args.inputs.mouse.x
-    args.state.y = args.inputs.mouse.y
+    args.state.last_mouse_click = args.inputs.mouse.click
   end
 
-  args.state.count += 1
+  if args.state.last_mouse_click
+    if args.state.last_mouse_click.point.inside_rect? redCard
+      args.state.health -= 5
+      args.state.last_mouse_click = nil
+    elsif args.state.last_mouse_click.point.inside_rect? greenCard
+      args.state.health += 5
+      args.state.last_mouse_click = nil
+    end
+  end
 end
 
-$gtk.reset
+#$gtk.reset
