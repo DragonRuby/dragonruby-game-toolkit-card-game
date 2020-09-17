@@ -46,8 +46,15 @@ def ui args
   args.outputs.labels << [ 25, 650, "Energy: #{args.state.resource}" ]
 
   #Player information
-  args.state.health ||= 100
-  args.outputs.labels << [ 580, 500, "Health: #{args.state.health}" ]
+  args.state.player_x ||= 250
+  args.state.player_y ||= 400
+  player = [ args.state.player_x, args.state.player_y, 100, 100,  'sprites/dragon-0.png' ]
+  args.outputs.sprites << player
+
+  args.state.player_health ||= 100
+  args.state.player_health_x ||= args.state.player_x
+  args.state.player_health_y ||= args.state.player_y + 150
+  args.outputs.labels << [ args.state.player_health_x, args.state.player_health_y, "Your Health: #{args.state.player_health}" ]
 
   #Cards information
   red_x ||= 300
