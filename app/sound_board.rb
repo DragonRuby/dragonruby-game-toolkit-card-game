@@ -3,32 +3,27 @@ require 'app/sound.rb'
 class SoundBoard
   attr_accessor :inputs, :state, :outputs, :grid, :args
 
-  def initialize
-    state.change_pos = true
-  end
-
   def tick
-    init
+    init unless state.did_init
     check_keyboard
     check_mouse
     render
+    reset
   end
 
   def check_keyboard
-    state.change_pos = false
-
     if inputs.keyboard.key_down.c
       state.sounds.each do |sound|
         sound.rand_color
       end
     end
 
-    if inputs.keyboard.key_down.up
+    if inputs.keyboard.key_held.up
       state.sounds.push(Sound.new((state.sounds.size + 1).to_s, '', 25))
       state.change_pos = true
     end
 
-    if inputs.keyboard.key_down.down
+    if inputs.keyboard.key_held.down
       state.sounds.pop
       state.change_pos = true
     end
@@ -46,20 +41,27 @@ class SoundBoard
     # Render buttons
     num_sounds = state.sounds.size
     state.sounds.each_with_index do |sound, i|
-      sound.set_pos(i, num_sounds, grid)
+      sound.set_pos(i, num_sounds, grid) if state.change_pos
       sound.render(outputs, state.tick_count)
     end
-    outputs.labels << [1200, 710, $gtk.current_framerate]
+    outputs.labels << [1200, 710, $gtk.current_framerate] if state.verbose
+  end
+
+  def reset
+    state.change_pos = false
   end
 
   def init
     # Set vars on load
-    state.sounds ||= [
+    state.did_init = true
+    state.sounds = [
       Sound.new('Airhorn', 'sounds/airhorn.wav', 90),
       Sound.new('Hit Marker', 'sounds/hit_marker.wav', 2)
     ]
     while state.sounds.size < 288
       state.sounds.push(Sound.new((state.sounds.size + 1).to_s, '', 25))
     end
+    state.change_pos = true
+    state.verbose = true
   end
 end
