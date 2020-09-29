@@ -21,24 +21,42 @@ class Card
     attr_accessor :title
     attr_accessor :description
     attr_accessor :cost
+    attr_accessor :sprite
 end
 
 class Heal < Card
+  def initialize
+    @title = "Heal"
+    @description = "Heal 5 HP"
+    @cost = 1
+    @sprite = 'sprites/hexagon-green.png'
+  end
   class << self
     @title = "Heal"
     @description = "Heal 5 HP"
     @cost = 1
+    @sprite = 'sprites/hexagon-green.png'
     def action
-        $Player.health += 5
+      $Player.health += 5
     end
   end
 end
 
 class Attack < Card
+  def initialize
+    @sprite = 'sprites/hexagon-red.png'
+    @title = "Attack"
+    @description = "Deal 5 damage to an enemy"
+    @cost = 1
+  end
+  def action target
+    #target -= 5
+  end
   class << self
     @title = "Attack"
     @description = "Deal 5 damage to an enemy"
     @cost = 1
+    @sprite = 'sprites/hexagon-red.png'
     def action target
       target -= 5
     end
@@ -47,6 +65,7 @@ end
 
 $Heal = Heal.new
 $Attack = Attack.new
+
 
 class Player
   attr_accessor :state, :max_health, :health, :energy, :strength, :sprite
@@ -81,16 +100,6 @@ class Blob < Enemy
   end
 end
 
-class Discard
-  attr_accessor :state, :cards, :sprite, :card_count
-
-  def initialize
-    @cards = []
-    @sprite = 'sprites/hexagon-black.png'
-    @card_count = @cards.length
-  end
-end
-
 class Deck
   attr_accessor :state, :cards, :sprite, :card_count
 
@@ -100,18 +109,95 @@ class Deck
     @card_count = @cards.length
     @sprite = 'sprites/hexagon-indigo.png'
   end
-
-  #draw a single card
-  # def draw
-  #
-  # end
-
-  #drawing at the start of a new turn
-  # def draw_start
-  #
-  # end
-
 end
+
+class Hand
+  attr_accessor :state, :inputs, :outputs, :cards, :card_count
+
+  def initialize
+    @cards = []
+    @card_count = @cards.length
+  end
+
+  def display
+    @cards.each_with_index do |card, i|
+      if (i == 0)
+        outputs.sprites << [100, 100, 64, 128, card.sprite]
+      else
+        outputs.sprites << [(i+1)*100, 100, 64, 128, card.sprite]
+      end
+    end
+    #for i in @cards do
+      # puts i
+      # if (i == 0)
+      #   outputs.sprites << [100, 100, 64, 128, @cards[i].sprite]
+      # else
+      #   outputs.sprites << [i*100, 100, 64, 128, @cards[i].sprite]
+      # end
+    #end
+  end
+
+  def draw
+    if($PlayerDeck.card_count > 0)
+      #x = rand($PlayerDeck.card_count - @card_count)
+      x = 0
+      @cards << $PlayerDeck.cards[x]
+      $PlayerDeck.cards.delete_at(x)
+      $PlayerDeck.card_count -= 1
+      @card_count += 1
+    end
+  end
+
+  def draw_start
+    for i in 1..3 do
+      x = rand($PlayerDeck.card_count - @card_count)
+      @cards << $PlayerDeck.cards[x]
+      $PlayerDeck.cards.delete_at(x)
+      $PlayerDeck.card_count -= 1
+      @card_count += 1
+    end
+  end
+
+  def play
+
+    if inputs.mouse.click
+      state.last_mouse_click = inputs.mouse.click
+    end
+
+    #If a card is moused over move it up by 50 px and leave it there if it's selected
+    if state.last_mouse_click
+      if state.last_mouse_click.point.inside_rect? card1
+        if($Player.energy != 0)
+          $Player.energy -= 1
+          $Blob.health -= 5
+          state.last_mouse_click = nil
+        end
+      elsif state.last_mouse_click.point.inside_rect? card2
+        $Player.health += 5
+        state.last_mouse_click = nil
+      end
+    end
+  end
+end
+
+class Discard
+  attr_accessor :state, :cards, :sprite, :card_count
+
+  def initialize
+    @cards = []
+    @sprite = 'sprites/hexagon-black.png'
+    @card_count = @cards.length
+  end
+
+  def shuffle
+    $PlayerDeck.card_count = @card_count
+    @card_count = 0
+    @cards.each_with_index do |card, i|
+      $PlayerDeck.cards << @cards[i]
+    end
+  end
+end
+
 
 # def player args
 #   args.state.energy ||= 3
@@ -155,10 +241,6 @@ end
 #   # }
 # end
 
-$PlayerDeck = Deck.new
-$Player = Player.new
-$DiscardPile = Discard.new
-$Blob = Blob.new
 
 # class UI
 #   attr_accessor :state, :outputs, :inputs
@@ -248,6 +330,11 @@ $Blob = Blob.new
 #   end
 # end
 
+def turn args
+
+end
+
+
 def ui args
 
   #Deck information
@@ -305,48 +392,91 @@ def ui args
   args.outputs.sprites << [args.state.enemy_x, args.state.enemy_y, 100, 100, $Blob.sprite ]
   args.outputs.labels << [ args.state.enemy_x, args.state.enemy_y + 150, "Enemy Health: #{$Blob.health}" ]
 
-  #Cards information
-  red_x ||= 300
-  red_y ||= 100
-  green_x ||= 600
-  green_y ||= 100
-  red_card   = [ red_x,     red_y,     64, 128, 'sprites/hexagon-red.png' ]
-  green_card = [ green_x,   green_y,   64, 128, 'sprites/hexagon-green.png' ]
-  args.outputs.sprites << red_card
-  args.outputs.sprites << green_card
-
-
+  draw = [1150, 650, 200, 100, 180, 0, 0, 180]
+  args.outputs.solids << draw
   if args.inputs.mouse.click
     args.state.last_mouse_click = args.inputs.mouse.click
   end
-
-  #If a card is moused over move it up by 50 px and leave it there if it's selected
   if args.state.last_mouse_click
-    if args.state.last_mouse_click.point.inside_rect? red_card
-      if(args.state.energy != 0)
-        args.state.energy -= 1
-        args.state.health -= 5
-        args.state.last_mouse_click = nil
-        args.state.discard_count += 1
-      end
-    elsif args.state.last_mouse_click.point.inside_rect? green_card
-      args.state.health += 5
+    if args.state.last_mouse_click.point.inside_rect? draw
+      $Hand.draw
       args.state.last_mouse_click = nil
     end
   end
+
+  # red_x ||= 300
+  # red_y ||= 100
+  # green_x ||= 600
+  # green_y ||= 100
+  # redCard = [ red_x,     red_y,     64, 128, 'sprites/hexagon-red.png' ]
+  # greenCard = [ green_x,   green_y,   64, 128, 'sprites/hexagon-green.png' ]
+  #
+  # args.outputs.sprites << redCard
+  # args.outputs.sprites << greenCard
+  #
+  # if args.state.last_mouse_click
+  #   if args.state.last_mouse_click.point.inside_rect? redCard
+  #     if ($Player.energy > 0)
+  #       $Blob.health -= 5
+  #       $Player.energy -= 1
+  #       args.state.last_mouse_click = nil
+  #     end
+  #   elsif args.state.last_mouse_click.point.inside_rect? greenCard
+  #     if ($Player.energy > 0)
+  #       $Player.health += 5
+  #       $Player.energy -= 1
+  #       args.state.last_mouse_click = nil
+  #     end
+  #   end
+  # end
+
+
+  #Cards information
+  # card_y = 100
+  # cards_x = [100, 200, 300, 400, 500]
+  # card1 = [ cards_x[1], card_y, 64, 128, $Heal.sprite ]
+  # card2 = [ cards_x[2], card_y, 64, 128, $Attack.sprite ]
+  # args.outputs.sprites << card1
+  # args.outputs.sprites << card2
+  # if args.inputs.mouse.click
+  #   args.state.last_mouse_click = args.inputs.mouse.click
+  # end
+  #
+  # #If a card is moused over move it up by 50 px and leave it there if it's selected
+  # if args.state.last_mouse_click
+  #   if args.state.last_mouse_click.point.inside_rect? card1
+  #     if($Player.energy != 0)
+  #       $Player.energy -= 1
+  #       $Blob.health -= 5
+  #       args.state.last_mouse_click = nil
+  #     end
+  #   elsif args.state.last_mouse_click.point.inside_rect? card2
+  #     $Player.health += 5
+  #     args.state.last_mouse_click = nil
+  #   end
+  # end
 end
 
-
+$Player = Player.new
+$PlayerDeck = Deck.new
+$Hand = Hand.new
+$DiscardPile = Discard.new
+$Blob = Blob.new
 
 def tick args
-  $PlayerDeck.state = args.state
   $Player.state = args.state
+  $PlayerDeck.state = args.state
+  $Hand.state = args.state
+  $Hand.inputs = args.inputs
+  $Hand.outputs = args.outputs
   $DiscardPile.state = args.state
   $Blob.state = args.state
+  $Hand.display
   # player(args)
   # enemy(args)
   # deck(args)
   ui(args)
+  turn(args)
 end
 
 $gtk.reset
