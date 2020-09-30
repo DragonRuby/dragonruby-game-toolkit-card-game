@@ -22,6 +22,21 @@ class Card
     attr_accessor :description
     attr_accessor :cost
     attr_accessor :sprite
+    attr_accessor :pos_x
+    attr_accessor :pos_y
+    attr_accessor :width
+    attr_accessor :height
+
+    def display
+      return [@pos_x, @pos_y, @width, @height, @sprite]
+    end
+
+    def setDisplay x, y, w, h
+      @pos_x = x
+      @pos_y = y
+      @width = w
+      @height = h
+    end
 end
 
 class Heal < Card
@@ -30,16 +45,20 @@ class Heal < Card
     @description = "Heal 5 HP"
     @cost = 1
     @sprite = 'sprites/hexagon-green.png'
+    @pos_x ||= nil
+    @pos_y ||= nil
+    @length ||= nil
+    @height ||= nil
   end
-  class << self
-    @title = "Heal"
-    @description = "Heal 5 HP"
-    @cost = 1
-    @sprite = 'sprites/hexagon-green.png'
-    def action
-      $Player.health += 5
-    end
-  end
+  # class << self
+  #   @title = "Heal"
+  #   @description = "Heal 5 HP"
+  #   @cost = 1
+  #   @sprite = 'sprites/hexagon-green.png'
+  #   def action
+  #     $Player.health += 5
+  #   end
+  # end
 end
 
 class Attack < Card
@@ -48,19 +67,24 @@ class Attack < Card
     @title = "Attack"
     @description = "Deal 5 damage to an enemy"
     @cost = 1
+    @pos_x ||= nil
+    @pos_y ||= nil
+    @length ||= nil
+    @height ||= nil
   end
+
   def action target
-    #target -= 5
+    target -= 5
   end
-  class << self
-    @title = "Attack"
-    @description = "Deal 5 damage to an enemy"
-    @cost = 1
-    @sprite = 'sprites/hexagon-red.png'
-    def action target
-      target -= 5
-    end
-  end
+  # class << self
+  #   @title = "Attack"
+  #   @description = "Deal 5 damage to an enemy"
+  #   @cost = 1
+  #   @sprite = 'sprites/hexagon-red.png'
+  #   def action target
+  #     target -= 5
+  #   end
+  # end
 end
 
 $Heal = Heal.new
@@ -122,9 +146,13 @@ class Hand
   def display
     @cards.each_with_index do |card, i|
       if (i == 0)
-        outputs.sprites << [100, 100, 64, 128, card.sprite]
+        card.setDisplay(100, 100, 64, 128)
+        @outputs.sprites << card.display
+        #[100, 100, 64, 128, card.sprite]
       else
-        outputs.sprites << [(i+1)*100, 100, 64, 128, card.sprite]
+        card.setDisplay((i+1)*100, 100, 64, 128)
+        @outputs.sprites << card.display
+        #[(i+1)*100, 100, 64, 128, card.sprite]
       end
     end
     #for i in @cards do
@@ -139,18 +167,18 @@ class Hand
 
   def draw
     if($PlayerDeck.card_count > 0)
-      #x = rand($PlayerDeck.card_count - @card_count)
-      x = 0
+      x = rand($PlayerDeck.card_count)
       @cards << $PlayerDeck.cards[x]
       $PlayerDeck.cards.delete_at(x)
       $PlayerDeck.card_count -= 1
       @card_count += 1
+
     end
   end
 
   def draw_start
     for i in 1..3 do
-      x = rand($PlayerDeck.card_count - @card_count)
+      x = rand($PlayerDeck.card_count)
       @cards << $PlayerDeck.cards[x]
       $PlayerDeck.cards.delete_at(x)
       $PlayerDeck.card_count -= 1
@@ -160,24 +188,26 @@ class Hand
 
   def play
 
-    if inputs.mouse.click
-      state.last_mouse_click = inputs.mouse.click
-    end
+    # if inputs.mouse.click
+    #   state.last_mouse_click = inputs.mouse.click
+    # end
+    #
+    # #If a card is moused over move it up by 50 px and leave it there if it's selected
+    # if state.last_mouse_click
+    #   if state.last_mouse_click.point.inside_rect? @cards[0]
+    #     if($Player.energy != 0)
+    #       $Player.energy -= 1
+    #       $Blob.health -= 5
+    #     end
+    #   # elsif @state.last_mouse_click.point.inside_rect? card2
+    #   #   $Player.health += 5
+    #   #   @state.last_mouse_click = nil
+    #     state.last_mouse_click = nil
+    #   end
+    # end
 
-    #If a card is moused over move it up by 50 px and leave it there if it's selected
-    if state.last_mouse_click
-      if state.last_mouse_click.point.inside_rect? card1
-        if($Player.energy != 0)
-          $Player.energy -= 1
-          $Blob.health -= 5
-          state.last_mouse_click = nil
-        end
-      elsif state.last_mouse_click.point.inside_rect? card2
-        $Player.health += 5
-        state.last_mouse_click = nil
-      end
-    end
   end
+
 end
 
 class Discard
@@ -472,6 +502,7 @@ def tick args
   $DiscardPile.state = args.state
   $Blob.state = args.state
   $Hand.display
+  $Hand.play
   # player(args)
   # enemy(args)
   # deck(args)
