@@ -31,6 +31,10 @@ class Card
       return [@pos_x, @pos_y, @width, @height, @sprite]
     end
 
+    def setY y
+      @pos_y = y
+    end
+
     def setDisplay x, y, w, h
       @pos_x = x
       @pos_y = y
@@ -50,6 +54,14 @@ class Heal < Card
     @length ||= nil
     @height ||= nil
   end
+
+  def action
+    if($Player.energy >= @cost)
+      $Player.health += 5
+      $Player.energy -= @cost
+    end
+  end
+
   # class << self
   #   @title = "Heal"
   #   @description = "Heal 5 HP"
@@ -73,8 +85,12 @@ class Attack < Card
     @height ||= nil
   end
 
-  def action target
-    target -= 5
+  def action #target
+    #target -= 5
+    if($Player.energy >= @cost)
+      $Blob.health -= (5 + $Player.strength)
+      $Player.energy -= @cost
+    end
   end
   # class << self
   #   @title = "Attack"
@@ -96,7 +112,7 @@ class Player
   def initialize
     @max_health = 20
     @health ||= 20
-    @energy ||= 3
+    @energy ||= 10
     @strength ||= 0
     @sprite ||= 'sprites/dragon-0.png'
   end
@@ -145,66 +161,111 @@ class Hand
 
   def display
     @cards.each_with_index do |card, i|
-      if (i == 0)
-        card.setDisplay(100, 100, 64, 128)
-        @outputs.sprites << card.display
-        #[100, 100, 64, 128, card.sprite]
-      else
-        card.setDisplay((i+1)*100, 100, 64, 128)
-        @outputs.sprites << card.display
-        #[(i+1)*100, 100, 64, 128, card.sprite]
+      # if (i == 0)
+      #   card.setDisplay(100, 100, 64, 128)
+      #   #[100, 100, 64, 128, card.sprite]
+      # else
+      #   card.setDisplay((i+1)*100, 100, 64, 128)
+      #   #[(i+1)*100, 100, 64, 128, card.sprite]
+      # end
+      card.setDisplay((i+1)*100, 100, 64, 128)
+      outputs.sprites << card.display
+    end
+
+    if(@cards.length > 0)
+      if inputs.mouse.point.inside_rect? @cards[0].display
+        @cards[0].setY(200)
+      end
+      if !inputs.mouse.point.inside_rect? @cards[0].display
+        @cards[0].setY(100)
       end
     end
-    #for i in @cards do
-      # puts i
-      # if (i == 0)
-      #   outputs.sprites << [100, 100, 64, 128, @cards[i].sprite]
-      # else
-      #   outputs.sprites << [i*100, 100, 64, 128, @cards[i].sprite]
-      # end
-    #end
+
   end
 
   def draw
-    if($PlayerDeck.card_count > 0)
-      x = rand($PlayerDeck.card_count)
+    if($PlayerDeck.cards.length > 0)
+      x = rand($PlayerDeck.cards.length)
       @cards << $PlayerDeck.cards[x]
       $PlayerDeck.cards.delete_at(x)
-      $PlayerDeck.card_count -= 1
-      @card_count += 1
+      # $PlayerDeck.card_count -= 1
+      # @card_count += 1
 
     end
   end
 
   def draw_start
     for i in 1..3 do
-      x = rand($PlayerDeck.card_count)
+      x = rand($PlayerDeck.cards.length)
       @cards << $PlayerDeck.cards[x]
-      $PlayerDeck.cards.delete_at(x)
-      $PlayerDeck.card_count -= 1
-      @card_count += 1
+      # $PlayerDeck.cards.delete_at(x)
+      #@cards << $PlayerDeck.card_count -= 1
+      #@card_count += @cards.length
     end
   end
 
   def play
+    #x = @cards.length
+    if inputs.mouse.click && (@cards.length > 0)
+      #state.last_mouse_click = inputs.mouse.click
+      x = inputs.mouse.click.x
 
-    # if inputs.mouse.click
-    #   state.last_mouse_click = inputs.mouse.click
-    # end
+      @cards.each_with_index do |card, i|
+        if((x > ((i+1)*100)) && (x < (((i+1)*100) + 64)) )
+          card.action
+          $DiscardPile.cards << @cards.delete_at(i)
+        end
+      end
+    end
+    # if(x > 0)
     #
-    # #If a card is moused over move it up by 50 px and leave it there if it's selected
-    # if state.last_mouse_click
-    #   if state.last_mouse_click.point.inside_rect? @cards[0]
-    #     if($Player.energy != 0)
-    #       $Player.energy -= 1
-    #       $Blob.health -= 5
+    #   # if inputs.mouse.click
+    #   #   state.last_mouse_click = inputs.mouse.click
+    #   # end
+    #
+    #   #If a card is moused over move it up by 50 px and leave it there if it's selected
+    #   if state.last_mouse_click
+    #     if state.last_mouse_click.point.inside_rect? @cards[0].display
+    #
+    #       if($Player.energy != 0)
+    #         @cards[0].action
+    #         $DiscardPile.cards << @cards.delete_at(0)
+    #         #$DiscardPile.card_count += 1
+    #         #@card_count -=1
+    #         state.last_mouse_click = nil
+    #       end
+    #
     #     end
-    #   # elsif @state.last_mouse_click.point.inside_rect? card2
-    #   #   $Player.health += 5
-    #   #   @state.last_mouse_click = nil
-    #     state.last_mouse_click = nil
+    #
     #   end
+    #
     # end
+
+    # if state.last_mouse_click
+    #
+    #     if state.last_mouse_click.point.inside_rect? @cards[0].display
+    #
+    #       if($Player.energy != 0)
+    #         @cards[0].action
+    #         $DiscardPile.cards << @cards.delete_at(0)
+    #         #$DiscardPile.card_count += 1
+    #         #@card_count -=1
+    #         state.last_mouse_click = nil
+    #       end
+    #
+    #     end
+    #
+    # end
+
+    #if args.inputs.mouse.click
+    #     args.state.last_mouse_click = args.inputs.mouse.click
+    #   end
+    #   if args.state.last_mouse_click
+    #     if args.state.last_mouse_click.point.inside_rect? draw
+    #       $Hand.draw
+    #       args.state.last_mouse_click = nil
+    #     end
+    #   end
 
   end
 
@@ -374,7 +435,7 @@ def ui args
   args.outputs.sprites << deck_symbol
 
   args.state.deck_label_alpha ||= 0
-  deck_label = [ args.state.deck_x, args.state.deck_y + 150, "Cards in Deck: #{$PlayerDeck.card_count}", 0, 0, 0, args.state.deck_label_alpha ]
+  deck_label = [ args.state.deck_x, args.state.deck_y + 150, "Cards in Deck: #{$PlayerDeck.cards.length}", 0, 0, 0, args.state.deck_label_alpha ]
   args.outputs.labels << deck_label
 
   if args.inputs.mouse.point.inside_rect? deck_symbol
@@ -394,7 +455,7 @@ def ui args
   args.state.discard_label_alpha ||= 0
   args.state.discard_count_x = args.state.discard_x
   args.state.discard_count_y = args.state.discard_y + 150
-  discard_label = [ args.state.discard_count_x, args.state.discard_count_y, "Discarded: #{$DiscardPile.card_count}", 0, 0, 0, args.state.discard_label_alpha ]
+  discard_label = [ args.state.discard_count_x, args.state.discard_count_y, "Discarded: #{$DiscardPile.cards.length}", 0, 0, 0, args.state.discard_label_alpha ]
   args.outputs.labels << discard_label
 
   if args.inputs.mouse.point.inside_rect? discard
