@@ -1,5 +1,20 @@
-#Questions/ known issues:
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Questions/ known issues:
 # Click card, click enemy, card is spent, then if I click on another card and then the same enemy I have to click on that enemy twice for any effect to occur
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# TODO:
+# Get heal cards working
+# Allow targeting of player
+# Change the Sprites
+# Change position
+#   Cards don't just move over after one is played
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# EXTRAS:
+# Mousing over player, enemy, or card makes them bigger/ shows they are being hovered over (with a green border)?
+# More enemies
+# More cards
+# Animations
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 class Cards
   attr_accessor :items, :selected_card_history
@@ -102,25 +117,25 @@ class Deck
     @cards.items << card
   end
 
-  def tick args
-    #display info
-    #Deck information
-    deck_x ||= 20
-    deck_y ||= 40
-    deck_symbol = [ deck_x, deck_y, 64, 128, @sprite ]
-    args.outputs.sprites << deck_symbol
-
-    args.state.deck_label_alpha ||= 0
-    deck_label = [ deck_x, deck_y + 150, "Cards in Deck: #{@cards.items.length}", 0, 0, 0, args.state.deck_label_alpha ]
-    args.outputs.labels << deck_label
-
-    if args.inputs.mouse.point.inside_rect? deck_symbol
-      args.state.deck_label_alpha = 255
-    end
-    if !args.inputs.mouse.point.inside_rect? deck_symbol
-      args.state.deck_label_alpha = 0
-    end
-  end
+  # def tick args
+  #   #display info
+  #   #Deck information
+  #   deck_x ||= 20
+  #   deck_y ||= 40
+  #   deck_symbol = [ deck_x, deck_y, 64, 128, @sprite ]
+  #   args.outputs.sprites << deck_symbol
+  #
+  #   args.state.deck_label_alpha ||= 0
+  #   deck_label = [ deck_x, deck_y + 150, "Cards in Deck: #{@cards.items.length}", 0, 0, 0, args.state.deck_label_alpha ]
+  #   args.outputs.labels << deck_label
+  #
+  #   if args.inputs.mouse.point.inside_rect? deck_symbol
+  #     args.state.deck_label_alpha = 255
+  #   end
+  #   if !args.inputs.mouse.point.inside_rect? deck_symbol
+  #     args.state.deck_label_alpha = 0
+  #   end
+  # end
 
   def render args
     deck_x ||= 20
@@ -166,23 +181,23 @@ class Discard
     end
   end
 
-  def tick args
-    discard_x ||= 1150
-    discard_y ||= 40
-    discard = [ discard_x, discard_y, 64, 128, @sprite ]
-    args.outputs.sprites << discard
-
-    args.state.discard_label_alpha ||= 0
-    discard_label = [ discard_x, discard_y + 150, "Discarded: #{@cards.items.length}", 0, 0, 0, args.state.discard_label_alpha ]
-    args.outputs.labels << discard_label
-
-    if args.inputs.mouse.point.inside_rect? discard
-      args.state.discard_label_alpha = 255
-    end
-    if !args.inputs.mouse.point.inside_rect? discard
-      args.state.discard_label_alpha = 0
-    end
-  end
+  # def tick args
+  #   discard_x ||= 1150
+  #   discard_y ||= 40
+  #   discard = [ discard_x, discard_y, 64, 128, @sprite ]
+  #   args.outputs.sprites << discard
+  #
+  #   args.state.discard_label_alpha ||= 0
+  #   discard_label = [ discard_x, discard_y + 150, "Discarded: #{@cards.items.length}", 0, 0, 0, args.state.discard_label_alpha ]
+  #   args.outputs.labels << discard_label
+  #
+  #   if args.inputs.mouse.point.inside_rect? discard
+  #     args.state.discard_label_alpha = 255
+  #   end
+  #   if !args.inputs.mouse.point.inside_rect? discard
+  #     args.state.discard_label_alpha = 0
+  #   end
+  # end
 
   def render args
     discard_x ||= 1150
@@ -241,16 +256,16 @@ class Hand
     end
   end
 
-  def tick args
-    #display function
-    render args
-
-    # play function
-    inputs args
-
-    debug_hand args
-
-  end
+  # def tick args
+  #   #display function
+  #   render args
+  #
+  #   # play function
+  #   inputs args
+  #
+  #   debug_hand args
+  #
+  # end
 
   def debug_hand args
     args.outputs.debug << [10, 710, "#{args.inputs.mouse.x}, #{args.inputs.mouse.y}"].label
