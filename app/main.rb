@@ -1,19 +1,25 @@
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # Questions/ known issues:
-# Click card, click enemy, card is spent, then if I click on another card and then the same enemy I have to click on that enemy twice for any effect to occur
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#   Click card, click enemy, card is spent, then if I click on another card and then the same enemy I have to click on that enemy twice for any effect to occur
+#   Cleaner way to have one slime target enemies and a different slime target friendlies in the same ability slot (ability 3)
+#   Can I initialize the same variables in Super Class, but also variables in the subclass? (like in the cards)
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # TODO:
-# Get heal cards working
-# Allow targeting of player
-# Change the Sprites
-# Change position
-#   Cards don't just move over after one is played
+#   1a. Get heal cards working (Done)
+#   1b. Allow targeting of player (Kinda Done)
+#   1c. Prevent targeting of both player AND Enemy at the same time
+#   2. Change positions of objects on screen
+#       -Cards don't just move over after one is played
+#   3. Change the Sprites
+#   4. Remove comments and clean up code
+#     -Change order of card attr_accessor
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # EXTRAS:
-# Mousing over player, enemy, or card makes them bigger/ shows they are being hovered over (with a green border)?
-# More enemies
-# More cards
-# Animations
+#   Mousing over player, enemy, or card makes them bigger/ shows they are being hovered over (with a green border)?
+#   More enemies
+#   More cards
+#   Animations
+#   Make things more streamlined (go through the RubyMine warnings)
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 class Cards
@@ -24,7 +30,7 @@ class Cards
   end
 end
 class Card
-  attr_accessor :title, :description, :cost, :sprite, :pos_x, :pos_y, :width, :height, :on_screen, :selected
+  attr_accessor :title, :description, :cost, :sprite, :pos_x, :pos_y, :width, :height, :on_screen, :selected, :id
 
   def render
     return [@pos_x, @pos_y, @width, @height, @sprite]
@@ -41,7 +47,6 @@ class Card
     if(!@selected)
       @pos_y += 50
       @selected = true
-      $gtk.notify! "Card is selected"
     elsif(@selected)
       @pos_y -= 50
       @selected = false
@@ -56,48 +61,71 @@ class Card
   end
 
 end
-class Attack < Card
+class AttackCard < Card
   def initialize
-    @sprite ||= 'sprites/hexagon-red.png'
-    @title ||= "Attack"
-    @description ||= "Deal 5 damage to an enemy"
-    @cost ||= 1
-    @pos_x ||= nil
-    @pos_y ||= nil
-    @length ||= nil
-    @height ||= nil
-    @on_screen ||= false
-    @selected ||= false
+    @title = "Attack"
+    @id = "base_attack"
+    @description = "Deal 5 damage to an enemy"
+    @sprite = 'sprites/hexagon-red.png'
+    @cost = 1
+    @pos_x, @pos_y, @length, @height = nil
+    @on_screen, @selected = false
   end
-
   def action target, player
     target.health -= (5 + player.strength)
   end
-
 end
-class Heal < Card
+class HealCard < Card
   def initialize
     @title = "Heal"
+    @id = "base_heal"
     @description = "Heal 5 HP"
-    @cost = 1
     @sprite = 'sprites/hexagon-green.png'
-    @pos_x ||= nil
-    @pos_y ||= nil
-    @length ||= nil
-    @height ||= nil
-    @on_screen ||= false
-    @selected ||= false
+    @cost = 1
+    @pos_x, @pos_y, @lengt, @height = nil
+    @on_screen, @selected = false
   end
-
   def action target
-    if($Player.energy >= @cost)
-      target.health += 5
-      $Player.energy -= @cost
-    end
+    target.health += 5
   end
-
-  def select
-    @pos_y += 50
+end
+class StrengthCard < Card
+  def initialize
+    @title = "Strength"
+    @id = "base_strength"
+    @description = "Grants 2 strength to the target"
+    @sprite = 'sprites/hexagon-white.png'
+    @cost = 2
+    @pos_x, @pos_y, @length, @height = nil
+    @on_screen, @selected = false
+  end
+  def action target
+    target.strength += 2
+  end
+end
+class DeadCard < Card
+  def initialize
+    @title = "Waste of Space"
+    @id = "dead_card"
+    @description = "Takes up space in the player's hand and deck"
+    @sprite = 'sprites/hexagon-orange.png'
+    @cost = 1
+    @pos_x, @pos_y, @length, @height = nil
+    @on_screen, @selected = false
+  end
+end
+class DrawCard < Card
+  def initialize
+    @title = "Draw 2"
+    @id = "base_draw"
+    @description = "Draws two cards from the deck"
+    @sprite = 'sprites/hexagon-blue.png'
+    @cost = 2
+    @pos_x, @pos_y, @length, @height = nil
+    @on_screen, @selected = false
+  end
+  def action target, card
+    target.addCard(card)
   end
 end
 
@@ -105,37 +133,16 @@ class Deck
   attr_accessor :cards, :sprite, :deck_label_alpha, :deck_symbol
 
   def initialize
-    #@cards = [Attack.new, Attack.new, Attack.new, Attack.new, Attack.new]#,
-              #Heal.new, Heal.new, Heal.new, Heal.new, Heal.new]
-    @cards = Cards.new([Attack.new, Attack.new, Attack.new, Attack.new, Attack.new])
+    @cards = Cards.new([AttackCard.new, AttackCard.new, AttackCard.new, AttackCard.new,
+                        HealCard.new, HealCard.new, HealCard.new, HealCard.new,
+                        StrengthCard.new, DrawCard.new])
     @sprite = 'sprites/hexagon-indigo.png'
     @deck_label_alpha = 0
-    # @outputs = outputs
   end
 
   def addCard card
     @cards.items << card
   end
-
-  # def tick args
-  #   #display info
-  #   #Deck information
-  #   deck_x ||= 20
-  #   deck_y ||= 40
-  #   deck_symbol = [ deck_x, deck_y, 64, 128, @sprite ]
-  #   args.outputs.sprites << deck_symbol
-  #
-  #   args.state.deck_label_alpha ||= 0
-  #   deck_label = [ deck_x, deck_y + 150, "Cards in Deck: #{@cards.items.length}", 0, 0, 0, args.state.deck_label_alpha ]
-  #   args.outputs.labels << deck_label
-  #
-  #   if args.inputs.mouse.point.inside_rect? deck_symbol
-  #     args.state.deck_label_alpha = 255
-  #   end
-  #   if !args.inputs.mouse.point.inside_rect? deck_symbol
-  #     args.state.deck_label_alpha = 0
-  #   end
-  # end
 
   def render args
     deck_x ||= 20
@@ -150,8 +157,7 @@ class Deck
   def inputs args
     if args.inputs.mouse.point.inside_rect? @deck_symbol
       @deck_label_alpha = 255
-    end
-    if !args.inputs.mouse.point.inside_rect? @deck_symbol
+    else
       @deck_label_alpha = 0
     end
   end
@@ -174,30 +180,10 @@ class Discard
   end
 
   def shuffle
-    #$PlayerDeck.card_count = @card_count
-    #@card_count = 0
     @cards.items.each_with_index do |card, i|
       $PlayerDeck.cards << @cards.items[i]
     end
   end
-
-  # def tick args
-  #   discard_x ||= 1150
-  #   discard_y ||= 40
-  #   discard = [ discard_x, discard_y, 64, 128, @sprite ]
-  #   args.outputs.sprites << discard
-  #
-  #   args.state.discard_label_alpha ||= 0
-  #   discard_label = [ discard_x, discard_y + 150, "Discarded: #{@cards.items.length}", 0, 0, 0, args.state.discard_label_alpha ]
-  #   args.outputs.labels << discard_label
-  #
-  #   if args.inputs.mouse.point.inside_rect? discard
-  #     args.state.discard_label_alpha = 255
-  #   end
-  #   if !args.inputs.mouse.point.inside_rect? discard
-  #     args.state.discard_label_alpha = 0
-  #   end
-  # end
 
   def render args
     discard_x ||= 1150
@@ -231,7 +217,7 @@ class Discard
 end
 
 class Hand
-  attr_accessor  :cards
+  attr_accessor :cards
 
   def initialize
     @cards = Cards.new([])
@@ -256,17 +242,6 @@ class Hand
     end
   end
 
-  # def tick args
-  #   #display function
-  #   render args
-  #
-  #   # play function
-  #   inputs args
-  #
-  #   debug_hand args
-  #
-  # end
-
   def debug_hand args
     args.outputs.debug << [10, 710, "#{args.inputs.mouse.x}, #{args.inputs.mouse.y}"].label
     @cards.items.each do |c|
@@ -277,11 +252,6 @@ class Hand
       end
       args.outputs.debug << [c.pos_x, c.pos_y - 30, "#{contains_mouse}"].label
     end
-
-    if(args.inputs.mouse.click)
-      # notify! "Click Ocurred at #{args.inputs.mouse.click.x}, #{args.inputs.mouse.click.y}"
-    end
-
   end
 
   def inputs args
@@ -318,12 +288,12 @@ class EnemiesOnScreen
   attr_accessor :enemies
 
   def initialize
-    @enemies = Enemies.new([Blob.new(750, 400), Blob.new(950, 400)])
+    @enemies = Enemies.new([RedBlob.new(750, 400), GreenBlob.new(950, 400)])
   end
 
   def inputs args
     if args.inputs.mouse.down && (@enemies.items.length > 0)
-      found_enemy = @enemies.items.find {|enemy| args.inputs.mouse.click.point.inside_rect? enemy.render}
+      found_enemy = @enemies.items.find {|enemy| args.inputs.mouse.click.point.inside_rect? enemy.enemy_render}
       if(found_enemy)
         @enemies.items.each(&:deselect)
         if(@enemies.selected_enemy_history.last != found_enemy)
@@ -334,21 +304,31 @@ class EnemiesOnScreen
         end
       end
     end
+
+    @enemies.items.each do |enemy|
+      if args.inputs.mouse.point.inside_rect? enemy.enemy_render
+        enemy.info_alpha = 255
+      else
+        enemy.info_alpha = 0
+      end
+    end
+
   end
 
   def render args
     @enemies.items.each do |enemy|
       enemy.setDisplay(enemy.pos_x, enemy.pos_y, 100, 100)
-      args.outputs.sprites << enemy.render
+      args.outputs.sprites << enemy.enemy_render
       args.outputs.labels << [ enemy.pos_x, enemy.pos_y + 150, "Enemy Health: #{enemy.health}" ]
       args.outputs.borders << [enemy.pos_x - 10, enemy.pos_y - 10, enemy.width + 20, enemy.height + 20, 255, 0, 0, enemy.border_alpha]
+      args.outputs.labels << [enemy.pos_x, enemy.pos_y - 30, "Enemy Strength: #{enemy.strength}", 0, 0, 0, enemy.info_alpha]
     end
   end
 end
 class Enemy
-  attr_accessor :name, :health, :armor, :sprite, :number_of_actions, :pos_x, :pos_y, :width, :height, :selected, :border_alpha
+  attr_accessor :name, :health, :armor, :sprite, :number_of_actions, :pos_x, :pos_y, :width, :height, :selected, :border_alpha, :strength, :info_alpha
 
-  def render
+  def enemy_render
     return [@pos_x, @pos_y, @width, @height, @sprite]
   end
 
@@ -375,40 +355,84 @@ class Enemy
   end
 
 end
-class Blob < Enemy
+class GreenBlob < Enemy
+#Adds useless cards to the player's Deck and heals its allies
   def initialize x,y
-    @name = "Blob"
-    @health = 10
+    @name = "Green Blob"
+    @health = 15
     @armor = 0
-    @sprite = 'sprites/square-red.png'
+    @sprite = 'sprites/square-green.png'
     @number_of_actions = 2
-    @pos_x ||= x
-    @pos_y ||= y
-    @length ||= 100
-    @height ||= 100
-    @selected ||= false
-    @border_alpha ||= 0
+    @pos_x = x
+    @pos_y = y
+    @length = 100
+    @height = 100
+    @selected = false
+    @border_alpha = 0
+    @strength = 0
+    @info_alpha = 0
   end
 
   #decreases the player's health
-  def attack target
-    target.health -= 5
+  def ability_0 target
+    target.health -= 5 + @strength
+  end
+
+  #Adds useless card to deck
+  def ability_1 player, deck
+    deck.addCard(DeadCard.new)
+  end
+
+  #Heals allies
+  def ability_2 target
+    target.health += 3
+  end
+
+  #Attacks (see ability_0)
+  def ability_3 target
+    ability_0 target
+  end
+end
+class RedBlob < Enemy
+  def initialize x,y
+    @name = "Red Blob"
+    @health = 20
+    @armor = 0
+    @sprite = 'sprites/square-red.png'
+    @number_of_actions = 4
+    @pos_x = x
+    @pos_y = y
+    @length = 100
+    @height = 100
+    @selected = false
+    @border_alpha = 0
+    @strength = 0
+    @info_alpha = 0
+  end
+
+  #decreases the player's health
+  def ability_0 target
+    target.health -= 10 + @strength
   end
 
   #decreases the player's strength
-  def ability_1 target
+  def ability_1 target, deck
     target.strength -= 1
   end
 
-  # def tick args
-  #   #Enemy Display
-  #   args.outputs.sprites << [@pos_x, @pos_y, @length, @height, @sprite ]
-  #   args.outputs.labels << [ @health_x, @health_y, "Enemy Health: #{@health}" ]
-  # end
+  #Increases a monster's strength
+  def ability_2 target
+    target.strength += 1
+  end
+
+  #Attacks (see ability_0)
+  def ability_3 target
+    ability_0 target
+  end
 end
 
 class Player
-  attr_accessor :max_health, :health, :max_energy, :energy, :strength, :sprite
+  attr_accessor :max_health, :health, :max_energy, :energy, :strength, :sprite, :player_render, :player_x, :player_y, :selected, :border_alpha
   def initialize
     @max_health = 30
     @health = @max_health
@@ -416,17 +440,28 @@ class Player
     @energy = @max_energy
     @strength = 0
     @sprite = 'sprites/dragon-0.png'
+    @player_x = 250
+    @player_y = 400
+    @width = 100
+    @height = 100
+    @player_render = [ @player_x, @player_y, @width, @height,  @sprite ]
+    @selected = false
+    @border_alpha = 0
   end
 
-  def tick args
-    #Energy display
-    args.outputs.labels << [ 25, 650, "Energy: #{@energy}" ]
+  def select
+    if(!@selected)
+      @selected = true
+      $gtk.notify! "Player is selected"
+      @border_alpha = 128
+    elsif(@selected)
+      deselect
+    end
+  end
 
-    #Player display
-    args.state.player_x ||= 250
-    args.state.player_y ||= 400
-    args.outputs.sprites << [ args.state.player_x, args.state.player_y, 100, 100,  @sprite ]
-    args.outputs.labels << [ args.state.player_x, args.state.player_y + 150, "Your Health: #{@health}" ]
+  def deselect
+    @selected = false
+    @border_alpha = 0
   end
 
   def render args
@@ -435,14 +470,20 @@ class Player
     args.outputs.labels << [ 25, 625, "Strength: #{@strength}" ]
 
     #Player display
-    args.state.player_x ||= 250
-    args.state.player_y ||= 400
-    args.outputs.sprites << [ args.state.player_x, args.state.player_y, 100, 100,  @sprite ]
-    args.outputs.labels << [ args.state.player_x, args.state.player_y + 150, "Your Health: #{@health}" ]
+    args.outputs.sprites << @player_render
+    args.outputs.labels << [ @player_x, @player_y + 150, "Your Health: #{@health}" ]
+
+    #Select Display
+    args.outputs.borders << [@player_x - 10, @player_y - 10, @width + 20, @height + 20, 0, 255, 0, @border_alpha]
+
   end
 
   def inputs args
-
+    if args.inputs.mouse.down
+      if(args.inputs.mouse.click.point.inside_rect? @player_render)
+        select
+      end
+    end
   end
 
 end
@@ -485,22 +526,17 @@ class Game
 
   # this is the entry point for Game (which is the ~tick~ method).
   def tick args
-    #@deck.tick args
-    #@discard.tick args
-    #@hand.tick args
-    #@player.tick args
-    # @enemies.items.each do |enemy|
-    #   enemy.tick args
-    # end
     render args
     inputs args
     calc args
   end
 
+  #Defaults
   def defaults args
 
   end
 
+  #Renders everything on screen
   def render args
     @deck.render args
     @discard.render args
@@ -510,19 +546,20 @@ class Game
     @UI.render args
 
     #Temporary Draw Button in the top right-hand corner
-    draw = [1150, 650, 200, 100, 180, 0, 0, 360]
-    args.outputs.solids << draw
-    if args.inputs.mouse.click
-      if args.inputs.mouse.click.point.inside_rect? draw
-        if(!@deck.isEmpty)
-          x = rand(@deck.cards.items.length)
-          @hand.addCard(@deck.cards.items[x])
-          @deck.cards.items.delete_at(x)
-        end
-      end
-    end
+    # draw = [1150, 650, 200, 100, 180, 0, 0, 360]
+    # args.outputs.solids << draw
+    # if args.inputs.mouse.click
+    #   if args.inputs.mouse.click.point.inside_rect? draw
+    #     if(!@deck.isEmpty)
+    #       x = rand(@deck.cards.items.length)
+    #       @hand.addCard(@deck.cards.items[x])
+    #       @deck.cards.items.delete_at(x)
+    #     end
+    #   end
+    # end
   end
 
+  #Hadles mouse and keyboard inputs
   def inputs args
     @deck.inputs args
     @discard.inputs args
@@ -530,22 +567,23 @@ class Game
     @enemiesOnScreen.inputs args
     @player.inputs args
     @UI.inputs args
-  end
 
-  def calc args
-    #Draw 3 at the start of each turn
-    # if(@start_turn)
-    #   @start_turn = false
-    #   3.times do
-    #     if(@hand.cards.items.length < 3 && !@deck.isEmpty)
-    #       x = rand(@deck.cards.items.length)
-    #       @hand.addCard(@deck.cards.items[x])
-    #       @deck.cards.items.delete_at(x)
-    #     elsif(@deck.isEmpty)
-    #       reshuffle_deck
+    # if(args.inputs.mouse.down)
+    #   @enemiesOnScreen.enemies.items.each do |enemy|
+    #     if((args.inputs.mouse.click.inside_rect? @player.player_render) && (enemy.selected))
+    #       @enemiesOnScreen.enemies.items.each do |enemy|
+    #         enemy.deselect
+    #       end
+    #     elsif((args.inputs.mouse.click.inside_rect? enemy.enemy_render) && (@player.selected))
+    #       @player.deselect
+    #       enemy.select
     #     end
     #   end
     # end
+  end
+
+  #Handles the logic of the game
+  def calc args
 
     while(@start_turn)
       if(@hand.cards.items.length < 3)
@@ -561,28 +599,80 @@ class Game
       end
     end
 
-    #Allows the user to play cards (ATTACK CARDS ONLY RIGHT NOW)(Switch case for the types of cards)
+    #Allows the user to play cards
     @hand.cards.items.each do |card|
       @enemiesOnScreen.enemies.items.each do |enemy|
-        if(card.selected && enemy.selected && (@player.energy >= card.cost)) #add selected value to enemy
-          card.action(enemy, @player)
-          @player.energy -= card.cost
-          card.deselect
-          enemy.deselect
-          @discard.addCard(card)
-          @hand.cards.items.delete(card)
-          enemy.deselect
+        if(card.selected && (enemy.selected || @player.selected) && (@player.energy >= card.cost))
+          case card.id
+
+          when "base_attack"
+            if(enemy.selected)
+              card.action(enemy, @player)
+              @player.energy -= card.cost
+              card.deselect
+              enemy.deselect
+              @discard.addCard(card)
+              @hand.cards.items.delete(card)
+              enemy.deselect
+              @player.deselect
+            end
+
+          when "base_heal"
+            if(@player.selected)
+              card.action(@player)
+              @player.energy -= card.cost
+              card.deselect
+              enemy.deselect
+              @discard.addCard(card)
+              @hand.cards.items.delete(card)
+              enemy.deselect
+              @player.deselect
+            end
+
+          when "base_strength"
+            if(@player.selected)
+              card.action(@player)
+              @player.energy -= card.cost
+              card.deselect
+              enemy.deselect
+              @discard.addCard(card)
+              @hand.cards.items.delete(card)
+              enemy.deselect
+              @player.deselect
+            end
+
+          when "dead_card"
+            if(@player.selected)
+              @player.energy -= card.cost
+              card.deselect
+              enemy.deselect
+              @hand.cards.items.delete(card)
+              enemy.deselect
+              @player.deselect
+            end
+
+          when "base_draw"
+            if(@player.selected)
+              2.times do
+                x = rand(@deck.cards.items.length)
+                card.action(@hand, @deck.cards.items[x])
+                @deck.cards.items.delete_at(x)
+              end
+              @player.energy -= card.cost
+              card.deselect
+              enemy.deselect
+              @discard.addCard(card)
+              @hand.cards.items.delete(card)
+              enemy.deselect
+              @player.deselect
+            end
+          end
         end
       end
     end
 
     #Refills deck from Discard
     if(@deck.isEmpty)
-      # while @discard.cards.items.length > 0 do
-      #   x = rand(@discard.cards.items.length)
-      #   @deck.addCard(@discard.cards.items[x])
-      #   @discard.cards.items.delete_at(x)
-      # end
       reshuffle_deck
     end
 
@@ -609,19 +699,27 @@ class Game
 
       #Enemies do their actions
       @enemiesOnScreen.enemies.items.each do |enemy|
-        action_choice = rand(2)
+        action_choice = rand(4)
         case action_choice
 
+          #Ability 0 is always an attack
         when 0
-          enemy.attack @player
+          enemy.ability_0 @player
 
+          #Ability 1 always target the player
         when 1
-          enemy.ability_1 @player
+          enemy.ability_1 @player, @deck
 
+          #Ability 2 always targets a friendly monster (including self)
+        when 2
+          enemy.ability_2 @enemiesOnScreen.enemies.items[rand(@enemiesOnScreen.enemies.items.length)]
+
+          #Ability 3 is a special attack that not every monster will have (if they don't they just perform a different ability again)
+        when 3
+          enemy.ability_3 @player
         end
       end
 
-      $gtk.notify! "Turn ended!"
 
       #The player's energy is reset
       @player.energy = @player.max_energy
