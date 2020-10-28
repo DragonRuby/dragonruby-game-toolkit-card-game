@@ -2,7 +2,6 @@
 # Questions/ known issues:
 #   Click card, click enemy, card is spent, then if I click on another card and then the same enemy I have to click on that enemy twice for any effect to occur
 #   Cleaner way to have one slime target enemies and a different slime target friendlies in the same ability slot (ability 3)
-#   Can I initialize the same variables in Super Class, but also variables in the subclass? (like in the cards)
 #   Pause the game loop? If enemies are cleared and I want to wait for player input before continuing
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # TODO:
@@ -33,19 +32,22 @@ class Cards
   end
 end
 class Card
-  attr_accessor :title, :description, :cost, :sprite, :pos_x, :pos_y, :width, :height, :on_screen, :selected, :id
+  attr_accessor :title, :description, :cost, :sprite, :pos_x, :pos_y, :width, :height, :on_screen, :selected, :id, :info_alpha
 
+  def initialize
+    @pos_x, @pos_y, @width, @height = nil
+    @on_screen, @selected = false
+    @info_alpha = 0
+  end
   def render
     [@pos_x, @pos_y, @width, @height, @sprite]
   end
-
   def setDisplay x, y, w, h
     @pos_x = x
     @pos_y ||= y
     @width ||= w
     @height ||= h
   end
-
   def select
     if(!@selected)
       @pos_y += 50
@@ -55,24 +57,24 @@ class Card
       @selected = false
     end
   end
-
   def deselect
     if((@pos_y > 100) && (@selected))
       @pos_y -= 50
     end
     @selected = false
   end
-
 end
 class AttackCard < Card
   def initialize
+    super()
     @title = "Attack"
     @id = "base_attack"
     @description = "Deal 5 damage to an enemy"
     @sprite = 'sprites/hexagon-red.png'
     @cost = 1
-    @pos_x, @pos_y, @length, @height = nil
-    @on_screen, @selected = false
+    # @pos_x, @pos_y, @length, @height = nil
+    # @on_screen, @selected = false
+    # @info_alpha = 0
   end
   def action target, player
     target.health -= (5 + player.strength)
@@ -80,13 +82,14 @@ class AttackCard < Card
 end
 class HealCard < Card
   def initialize
+    super()
     @title = "Heal"
     @id = "base_heal"
     @description = "Heal 5 HP"
     @sprite = 'sprites/hexagon-green.png'
     @cost = 1
-    @pos_x, @pos_y, @lengt, @height = nil
-    @on_screen, @selected = false
+    # @pos_x, @pos_y, @lengt, @height = nil
+    # @on_screen, @selected = false
   end
   def action target
     target.health += 5
@@ -97,13 +100,14 @@ class HealCard < Card
 end
 class StrengthCard < Card
   def initialize
+    super()
     @title = "Strength"
     @id = "base_strength"
     @description = "Grants 2 strength to the target"
     @sprite = 'sprites/hexagon-white.png'
     @cost = 2
-    @pos_x, @pos_y, @length, @height = nil
-    @on_screen, @selected = false
+    # @pos_x, @pos_y, @length, @height = nil
+    # @on_screen, @selected = false
   end
   def action target
     target.strength += 2
@@ -111,24 +115,26 @@ class StrengthCard < Card
 end
 class DeadCard < Card
   def initialize
+    super()
     @title = "Waste of Space"
     @id = "dead_card"
     @description = "Takes up space in the player's hand and deck"
     @sprite = 'sprites/hexagon-orange.png'
     @cost = 1
-    @pos_x, @pos_y, @length, @height = nil
-    @on_screen, @selected = false
+    # @pos_x, @pos_y, @length, @height = nil
+    # @on_screen, @selected = false
   end
 end
 class DrawCard < Card
   def initialize
+    super()
     @title = "Draw 2"
     @id = "base_draw"
     @description = "Draws two cards from the deck"
     @sprite = 'sprites/hexagon-blue.png'
     @cost = 2
-    @pos_x, @pos_y, @length, @height = nil
-    @on_screen, @selected = false
+    # @pos_x, @pos_y, @length, @height = nil
+    # @on_screen, @selected = false
   end
   def action target, card
     target.addCard(card)
@@ -241,6 +247,9 @@ class Hand
     @cards.items.each_with_index do |card, i|
       card.setDisplay(((i+1)*100)+300, 100, 64, 128)
       args.outputs.sprites << card.render
+      args.outputs.labels << [card.pos_x, card.pos_y + 203, "#{card.title}", 0, 0, 0, card.info_alpha]
+      args.outputs.labels << [card.pos_x, card.pos_y + 178, "#{card.description}", 0, 0, 0, card.info_alpha]
+      args.outputs.labels << [card.pos_x, card.pos_y + 153, "Cost: #{card.cost}", 0, 0, 0, card.info_alpha]
     end
   end
 
@@ -279,6 +288,14 @@ class Hand
         else
           @cards.selected_card_history = @cards.selected_card_history[0..-2]
         end
+      end
+    end
+
+    @cards.items.each do |card|
+      if(args.mouse.point.inside_rect? card.render)
+        card.info_alpha = 255
+      else
+        card.info_alpha = 0
       end
     end
   end
@@ -342,17 +359,21 @@ end
 class Enemy
   attr_accessor :name, :health, :armor, :sprite, :number_of_actions, :pos_x, :pos_y, :width, :height, :selected, :border_alpha, :strength, :info_alpha
 
+  def initialize
+    @selected = false
+    @border_alpha = 0
+    @strength = 0
+    @info_alpha = 0
+  end
   def enemy_render
     return [@pos_x, @pos_y, @width, @height, @sprite]
   end
-
   def setDisplay x, y, w, h
     @pos_x = x
     @pos_y = y
     @width = w
     @height = h
   end
-
   def select
     if(!@selected)
       @selected = true
@@ -362,12 +383,10 @@ class Enemy
       @selected = false
     end
   end
-
   def deselect
     @selected = false
     @border_alpha = 0
   end
-
 end
 class GreenBlob < Enemy
 #Adds useless cards to the player's Deck and heals its allies
@@ -381,10 +400,11 @@ class GreenBlob < Enemy
     @pos_y = y
     @length = 100
     @height = 100
-    @selected = false
-    @border_alpha = 0
-    @strength = 0
-    @info_alpha = 0
+    super()
+    # @selected = false
+    # @border_alpha = 0
+    # @strength = 0
+    # @info_alpha = 0
   end
 
   #decreases the player's health
@@ -418,27 +438,36 @@ class KingBlob < Enemy
     @pos_y = y
     @length = 200
     @height = 200
-    @selected = false
-    @border_alpha = 0
-    @strength = 0
-    @info_alpha = 0
+    super()
+    # @selected = false
+    # @border_alpha = 0
+    # @strength = 0
+    # @info_alpha = 0
   end
 
   #decreases the player's health
   def ability_0 target
     target.health -= 15 + @strength
-    target.strength -= 1
+    target.strength -= 2
+    if(target.strength < target.min_strength)
+      target.strength = taret.min_strength
+    end
   end
 
   #decreases the player's strength
   def ability_1 target, deck
-    target.strength -= 3
+    target.strength -= 1
+    if(target.strength < target.min_strength)
+      target.strength = taret.min_strength
+    end
+    deck.addCard(DeadCard.new)
+    deck.addCard(DeadCard.new)
   end
 
   #Increases a monster's strength
   def ability_2 target
-    target.health += 15
-    target.strength += 1
+    target.health += 20
+    target.strength += 2
   end
 
   #Attacks (see ability_0)
@@ -457,10 +486,11 @@ class RedBlob < Enemy
     @pos_y = y
     @length = 100
     @height = 100
-    @selected = false
-    @border_alpha = 0
-    @strength = 0
-    @info_alpha = 0
+    super()
+    # @selected = false
+    # @border_alpha = 0
+    # @strength = 0
+    # @info_alpha = 0
   end
 
   #decreases the player's health
@@ -471,6 +501,9 @@ class RedBlob < Enemy
   #decreases the player's strength
   def ability_1 target, deck
     target.strength -= 1
+    if(target.strength < target.min_strength)
+      target.strength = target.min_strength
+    end
   end
 
   #Increases a monster's strength
