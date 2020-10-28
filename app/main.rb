@@ -3,16 +3,19 @@
 #   Click card, click enemy, card is spent, then if I click on another card and then the same enemy I have to click on that enemy twice for any effect to occur
 #   Cleaner way to have one slime target enemies and a different slime target friendlies in the same ability slot (ability 3)
 #   Can I initialize the same variables in Super Class, but also variables in the subclass? (like in the cards)
+#   Pause the game loop? If enemies are cleared and I want to wait for player input before continuing
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # TODO:
-#   1a. Get heal cards working (Done)
-#   1b. Allow targeting of player (Kinda Done)
-#   1c. Prevent targeting of both player AND Enemy at the same time
-#   2. Change positions of objects on screen
+#   1. Fix the known issues
+#   2a. Get heal cards working (Done)
+#   2b. Allow targeting of player (Kinda Done)
+#   2c. Prevent targeting of both player AND Enemy at the same time
+#   3. Change positions of objects on screen
 #       -Cards don't just move over after one is played
-#   3. Change the Sprites
-#   4. Remove comments and clean up code
+#   4. Change the Sprites
+#   5. Remove comments and clean up code
 #     -Change order of card attr_accessor
+#   6. Remove any deprecated methods
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # EXTRAS:
 #   Mousing over player, enemy, or card makes them bigger/ shows they are being hovered over (with a green border)?
@@ -33,7 +36,7 @@ class Card
   attr_accessor :title, :description, :cost, :sprite, :pos_x, :pos_y, :width, :height, :on_screen, :selected, :id
 
   def render
-    return [@pos_x, @pos_y, @width, @height, @sprite]
+    [@pos_x, @pos_y, @width, @height, @sprite]
   end
 
   def setDisplay x, y, w, h
@@ -87,6 +90,9 @@ class HealCard < Card
   end
   def action target
     target.health += 5
+    if(target.health > target.max_health)
+      target.health = target.max_health
+    end
   end
 end
 class StrengthCard < Card
@@ -168,6 +174,14 @@ class Deck
     end
   end
 
+  def levelComplete
+    #Removes any dead cards from the deck
+    @cards.items.each do |card|
+      if(card.id == "dead_card")
+        @cards.items.delete(card)
+      end
+    end
+  end
 end
 
 class Discard
@@ -225,16 +239,16 @@ class Hand
 
   def render args
     @cards.items.each_with_index do |card, i|
-      card.setDisplay((i+1)*100, 100, 64, 128)
+      card.setDisplay(((i+1)*100)+300, 100, 64, 128)
       args.outputs.sprites << card.render
     end
   end
 
   def addCard card
     @cards.items << card
-
   end
 
+  #Deprecated
   def draw_start
     for i in 1..3 do
       x = rand($PlayerDeck.cards.length)
@@ -393,6 +407,45 @@ class GreenBlob < Enemy
     ability_0 target
   end
 end
+class KingBlob < Enemy
+  def initialize x,y
+    @name = "King Blob"
+    @health = 40
+    @armor = 0
+    @sprite = 'sprites/square-yellow.png'
+    @number_of_actions = 4
+    @pos_x = x
+    @pos_y = y
+    @length = 200
+    @height = 200
+    @selected = false
+    @border_alpha = 0
+    @strength = 0
+    @info_alpha = 0
+  end
+
+  #decreases the player's health
+  def ability_0 target
+    target.health -= 15 + @strength
+    target.strength -= 1
+  end
+
+  #decreases the player's strength
+  def ability_1 target, deck
+    target.strength -= 3
+  end
+
+  #Increases a monster's strength
+  def ability_2 target
+    target.health += 15
+    target.strength += 1
+  end
+
+  #Attacks (see ability_0)
+  def ability_3 target
+    ability_0 target
+  end
+end
 class RedBlob < Enemy
   def initialize x,y
     @name = "Red Blob"
@@ -432,13 +485,15 @@ class RedBlob < Enemy
 end
 
 class Player
-  attr_accessor :max_health, :health, :max_energy, :energy, :strength, :sprite, :player_render, :player_x, :player_y, :selected, :border_alpha
+  attr_accessor :max_health, :health, :max_energy, :energy, :max_strength, :strength, :min_strength, :sprite, :player_render, :player_x, :player_y, :selected, :border_alpha
   def initialize
     @max_health = 30
     @health = @max_health
     @max_energy = 3
     @energy = @max_energy
-    @strength = 0
+    @max_strength = 0
+    @min_strength = -3
+    @strength = @max_strength
     @sprite = 'sprites/dragon-0.png'
     @player_x = 250
     @player_y = 400
@@ -466,12 +521,12 @@ class Player
 
   def render args
     #Energy display
-    args.outputs.labels << [ 25, 650, "Energy: #{@energy}" ]
+    args.outputs.labels << [ 25, 650, "Energy: #{@energy}/#{@max_energy}" ]
     args.outputs.labels << [ 25, 625, "Strength: #{@strength}" ]
 
     #Player display
     args.outputs.sprites << @player_render
-    args.outputs.labels << [ @player_x, @player_y + 150, "Your Health: #{@health}" ]
+    args.outputs.labels << [ @player_x, @player_y + 150, "Your Health: #{@health}/#{@max_health}" ]
 
     #Select Display
     args.outputs.borders << [@player_x - 10, @player_y - 10, @width + 20, @height + 20, 0, 255, 0, @border_alpha]
@@ -484,6 +539,21 @@ class Player
         select
       end
     end
+  end
+
+  def levelComplete
+    #Health Boost
+    @max_health += 5
+    @health += 10
+    if(@health > @max_health)
+      @health = @max_health
+    end
+
+    #Strength Boost
+    @max_strength += 1
+    @strength = @max_strength
+
+    @energy = @max_energy
   end
 
 end
@@ -511,7 +581,7 @@ class UI
 end
 
 class Game
-  attr_accessor :hand
+  attr_accessor :hand, :level
 
   def initialize
     #alphabetized
@@ -522,6 +592,7 @@ class Game
     @player = Player.new
     @UI = UI.new
     @start_turn = true
+    @level = 1
   end
 
   # this is the entry point for Game (which is the ~tick~ method).
@@ -544,6 +615,7 @@ class Game
     @player.render args
     @enemiesOnScreen.render args
     @UI.render args
+    args.outputs.labels << [450, 700, "Level: #{@level}"]
 
     #Temporary Draw Button in the top right-hand corner
     # draw = [1150, 650, 200, 100, 180, 0, 0, 360]
@@ -567,7 +639,6 @@ class Game
     @enemiesOnScreen.inputs args
     @player.inputs args
     @UI.inputs args
-
     # if(args.inputs.mouse.down)
     #   @enemiesOnScreen.enemies.items.each do |enemy|
     #     if((args.inputs.mouse.click.inside_rect? @player.player_render) && (enemy.selected))
@@ -654,9 +725,16 @@ class Game
           when "base_draw"
             if(@player.selected)
               2.times do
-                x = rand(@deck.cards.items.length)
-                card.action(@hand, @deck.cards.items[x])
-                @deck.cards.items.delete_at(x)
+                if(!@deck.isEmpty)
+                  x = rand(@deck.cards.items.length)
+                  card.action(@hand, @deck.cards.items[x])
+                  @deck.cards.items.delete_at(x)
+                else
+                  reshuffle_deck
+                  x = rand(@deck.cards.items.length)
+                  card.action(@hand, @deck.cards.items[x])
+                  @deck.cards.items.delete_at(x)
+                end
               end
               @player.energy -= card.cost
               card.deselect
@@ -681,6 +759,11 @@ class Game
       if(enemy.health <= 0)
         @enemiesOnScreen.enemies.items.delete(enemy)
       end
+    end
+
+    #When the current enemies are all beaten
+    if(@enemiesOnScreen.enemies.items.length == 0)
+      levelComplete
     end
 
     #Ends the players turn and lets Enemies take theirs
@@ -738,6 +821,51 @@ class Game
       @deck.addCard(@discard.cards.items[x])
       @discard.cards.items.delete_at(x)
     end
+  end
+
+  #If the player clears the current enemies on screen
+  def levelComplete
+    #Heals and increases health as well as strength
+    @player.levelComplete
+
+    #Removes cards from hand for reshuffling
+    #Deselect's any cards in the player's hand
+    @hand.cards.items.each do |card|
+      card.deselect
+    end
+    #Any unused cards are added to the discard pile
+    while @hand.cards.items.length > 0 do
+      x = rand(@hand.cards.items.length)
+      @discard.addCard(@hand.cards.items[x])
+      @hand.cards.items.delete_at(x)
+    end
+
+    #reshuffles any cards in the discard pile back into the deck
+    reshuffle_deck
+
+    #Clears the dead cards out of the deck
+    @deck.levelComplete
+
+    #Draws 3 cards for the start of the level
+    while(@hand.cards.items.length < 3)
+      if(!@deck.isEmpty)
+        x = rand(@deck.cards.items.length)
+        @hand.addCard(@deck.cards.items[x])
+        @deck.cards.items.delete_at(x)
+      elsif(@deck.isEmpty)
+        reshuffle_deck
+      end
+    end
+
+    @level += 1
+    if(@level%5 != 0)
+      @enemiesOnScreen.enemies.items << RedBlob.new(750, 400)
+      @enemiesOnScreen.enemies.items << GreenBlob.new(950, 400)
+    else
+      @enemiesOnScreen.enemies.items << KingBlob.new(850, 350)
+    end
+
+
   end
 
 end
