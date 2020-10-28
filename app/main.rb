@@ -17,11 +17,12 @@
 #   6. Remove any deprecated methods
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # EXTRAS:
-#   Mousing over player, enemy, or card makes them bigger/ shows they are being hovered over (with a green border)?
+#   Mousing over player, enemy, or card makes them bigger/ shows they are being hovered over (with a green border)? (DONE)
 #   More enemies
 #   More cards
 #   Animations
 #   Make things more streamlined (go through the RubyMine warnings)
+#   Console Commands
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 class Cards
@@ -80,6 +81,46 @@ class AttackCard < Card
     target.health -= (5 + player.strength)
   end
 end
+class DeadCard < Card
+  def initialize
+    super()
+    @title = "Waste of Space"
+    @id = "dead_card"
+    @description = "Takes up space in the player's hand and deck"
+    @sprite = 'sprites/hexagon-orange.png'
+    @cost = 1
+    # @pos_x, @pos_y, @length, @height = nil
+    # @on_screen, @selected = false
+  end
+end
+class DrawCard < Card
+  def initialize
+    super()
+    @title = "Draw 2"
+    @id = "base_draw"
+    @description = "Draws two cards from the deck"
+    @sprite = 'sprites/hexagon-blue.png'
+    @cost = 2
+    # @pos_x, @pos_y, @length, @height = nil
+    # @on_screen, @selected = false
+  end
+  def action target, card
+    target.addCard(card)
+  end
+end
+class EnergyCard < Card
+  def initialize
+    super()
+    @title = "Energy"
+    @id = "base_energy"
+    @description = "Gives you 1 energy for this turn only"
+    @sprite = 'sprites/hexagon-yellow.png'
+    @cost = 0
+  end
+  def action target
+    target.energy += 1
+  end
+end
 class HealCard < Card
   def initialize
     super()
@@ -113,33 +154,6 @@ class StrengthCard < Card
     target.strength += 2
   end
 end
-class DeadCard < Card
-  def initialize
-    super()
-    @title = "Waste of Space"
-    @id = "dead_card"
-    @description = "Takes up space in the player's hand and deck"
-    @sprite = 'sprites/hexagon-orange.png'
-    @cost = 1
-    # @pos_x, @pos_y, @length, @height = nil
-    # @on_screen, @selected = false
-  end
-end
-class DrawCard < Card
-  def initialize
-    super()
-    @title = "Draw 2"
-    @id = "base_draw"
-    @description = "Draws two cards from the deck"
-    @sprite = 'sprites/hexagon-blue.png'
-    @cost = 2
-    # @pos_x, @pos_y, @length, @height = nil
-    # @on_screen, @selected = false
-  end
-  def action target, card
-    target.addCard(card)
-  end
-end
 
 class Deck
   attr_accessor :cards, :sprite, :deck_label_alpha, :deck_symbol
@@ -147,7 +161,7 @@ class Deck
   def initialize
     @cards = Cards.new([AttackCard.new, AttackCard.new, AttackCard.new, AttackCard.new,
                         HealCard.new, HealCard.new, HealCard.new, HealCard.new,
-                        StrengthCard.new, DrawCard.new])
+                        StrengthCard.new, DrawCard.new, EnergyCard.new, EnergyCard.new])
     @sprite = 'sprites/hexagon-indigo.png'
     @deck_label_alpha = 0
   end
@@ -163,6 +177,9 @@ class Deck
     args.outputs.sprites << @deck_symbol
 
     deck_label = [ deck_x, deck_y + 150, "Cards in Deck: #{@cards.items.length}", 0, 0, 0, @deck_label_alpha ]
+    @cards.items.each_with_index do |card, i|
+      args.outputs.labels << [deck_x, (deck_y + 175) + (i * 25), "#{card.name}", 0, 0, 0, @deck_label_alpha]
+    end
     args.outputs.labels << deck_label
   end
 
@@ -212,6 +229,9 @@ class Discard
     args.outputs.sprites << @discard_symbol
 
     discard_label = [ discard_x, discard_y + 150, "Discarded: #{@cards.items.length}", 0, 0, 0, @discard_label_alpha ]
+    @cards.items.each_with_index do |card, i|
+      args.outputs.labels << [discard_x, (discard_y + 175) + (i * 25), "#{card.name}", 0, 0, 0, @discard_label_alpha]
+    end
     args.outputs.labels << discard_label
   end
 
@@ -780,6 +800,18 @@ class Game
                   @deck.cards.items.delete_at(x)
                 end
               end
+              @player.energy -= card.cost
+              card.deselect
+              enemy.deselect
+              @discard.addCard(card)
+              @hand.cards.items.delete(card)
+              enemy.deselect
+              @player.deselect
+            end
+
+          when "base_energy"
+            if(@player.selected)
+              card.action(@player)
               @player.energy -= card.cost
               card.deselect
               enemy.deselect
