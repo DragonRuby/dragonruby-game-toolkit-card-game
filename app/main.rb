@@ -339,8 +339,12 @@ class EnemiesOnScreen
     @enemies.items.each do |enemy|
       if args.inputs.mouse.point.inside_rect? enemy.enemy_render
         enemy.info_alpha = 255
+        enemy.border_alpha = 255
       else
-        enemy.info_alpha = 0
+        if(!enemy.selected)
+          enemy.info_alpha = 0
+          enemy.border_alpha = 0
+        end
       end
     end
 
@@ -541,7 +545,7 @@ class Player
     if(!@selected)
       @selected = true
       $gtk.notify! "Player is selected"
-      @border_alpha = 128
+      @border_alpha = 255
     elsif(@selected)
       deselect
     end
@@ -570,6 +574,13 @@ class Player
     if args.inputs.mouse.down
       if(args.inputs.mouse.click.point.inside_rect? @player_render)
         select
+      end
+    end
+    if(args.mouse.point.inside_rect? @player_render)
+      @border_alpha = 255
+    else
+      if(!@selected)
+        @border_alpha = 0
       end
     end
   end
