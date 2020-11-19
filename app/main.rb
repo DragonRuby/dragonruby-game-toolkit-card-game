@@ -48,7 +48,57 @@
 # Increase enemy health and damage
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+##
+# Prepend to a class to add serialization and deserialization
+module Serialize
+	##
+	# If serial = true -> create the object by deserializing instance variables
+	# Else -> create the object normally
+	def initialize *args, serial: false, **kwargs
+		if serial
+			return deserialize(args[0])
+		elsif args.size > 0
+			if kwargs.size > 0
+				return super(*args, **kwargs)
+			end
+			return super(*args)
+		elsif kwargs.size > 0
+			return super(**kwargs)
+		end
+		super()
+	end
+
+	# Recursively deserialize arbitrary objects
+	def deserialize vars
+		# Loop through input and set to instance variables
+		vars.each do |var, val|
+			val.transform_keys!(&:to_sym)
+			klass = Kernel.const_get(val[:class])
+			# Recursively deserialize
+			val[:value] = klass.new(val[:value], serial: true) if klass.instance_methods.include?(:deserialize)
+			instance_variable_set(var.to_sym, val[:value])
+		end unless vars.nil?
+	end
+
+	# Recursively serialize arbitrary objects
+	def serialize
+		Hash[instance_variables.map do |var|
+			val = instance_variable_get(var)
+			klass = val.class.name
+			# Recursively serialize
+			val = val.serialize if val.respond_to?(:serialize)
+			[var, { class: klass, value: val }]
+		end]
+	end
+
+	def to_s
+		serialize.to_s
+	end
+	alias :inspect :to_s
+end
+
 class Cards
+	prepend Serialize
   attr_accessor :items, :selected_card_history
   def initialize(items) #array
     @items = items
@@ -65,6 +115,7 @@ class Card
     @on_screen, @selected = false
     @info_alpha = 0
   end
+	alias :name :title
   def render
     [@pos_x, @pos_y, @width, @height, @sprite]
   end
@@ -101,6 +152,7 @@ class Card
   end
 end
 class ArmorCard < Card
+	prepend Serialize
   def initialize
     super()
     @title = "Armor"
@@ -114,6 +166,7 @@ class ArmorCard < Card
   end
 end
 class AttackCard < Card
+	prepend Serialize
   def initialize
     super()
     @title = "Attack"
@@ -130,6 +183,7 @@ class AttackCard < Card
   end
 end
 class DeadCard < Card
+	prepend Serialize
   def initialize
     super()
     @title = "Waste of Space"
@@ -142,6 +196,7 @@ class DeadCard < Card
   end
 end
 class DrawCard < Card
+	prepend Serialize
   attr_accessor :amount
   def initialize
     super()
@@ -159,6 +214,7 @@ class DrawCard < Card
   end
 end
 class EnergyCard < Card
+	prepend Serialize
   def initialize
     super()
     @title = "Energy"
@@ -172,6 +228,7 @@ class EnergyCard < Card
   end
 end
 class HealCard < Card
+	prepend Serialize
   def initialize
     super()
     @title = "Heal"
@@ -188,6 +245,7 @@ class HealCard < Card
   end
 end
 class StrengthCard < Card
+	prepend Serialize
   def initialize
     super()
     @title = "Strength"
@@ -202,6 +260,7 @@ class StrengthCard < Card
 end
 
 class Deck
+	prepend Serialize
   attr_accessor :cards, :sprite, :deck_label_alpha, :deck_symbol
 
   def initialize
@@ -254,6 +313,7 @@ class Deck
 end
 
 class Discard
+	prepend Serialize
   attr_accessor :cards, :sprite, :discard_label_alpha, :discard_symbol
 
   def initialize
@@ -303,6 +363,7 @@ class Discard
 end
 
 class Hand
+	prepend Serialize
   attr_accessor :cards
 
   def initialize
@@ -410,6 +471,7 @@ class Hand
 end
 
 class Enemies
+	prepend Serialize
   attr_accessor :items, :selected_enemy_history
   def initialize items #array
     @items = items
@@ -417,6 +479,7 @@ class Enemies
   end
 end
 class EnemiesOnScreen
+	prepend Serialize
   attr_accessor :enemies
 
   def initialize
@@ -481,6 +544,7 @@ class Enemy
   attr_accessor :name, :max_health, :health, :armor, :sprite, :number_of_actions, :pos_x, :pos_y, :width, :height, :selected, :border_alpha, :strength, :info_alpha, :move
 
   def initialize
+		puts "init Enemy"
     @selected = false
     @border_alpha = 0
     @strength = 0
@@ -523,6 +587,7 @@ class Enemy
   end
 end
 class GreenBlob < Enemy
+	prepend Serialize
 #Adds useless cards to the player's Deck and heals its allies
   def initialize x,y
     @name = "Green Blob"
@@ -586,6 +651,7 @@ class GreenBlob < Enemy
   end
 end
 class KingBlob < Enemy
+	prepend Serialize
   def initialize x,y
     @name = "King Blob"
     @max_health = 60
@@ -641,6 +707,7 @@ class KingBlob < Enemy
   end
 end
 class RedBlob < Enemy
+	prepend Serialize
   def initialize x,y
     @name = "Red Blob"
     @max_health = 20
@@ -687,6 +754,7 @@ class RedBlob < Enemy
 end
 
 class Player
+	prepend Serialize
   attr_accessor :max_health, :health, :max_energy, :energy, :max_strength, :strength, :min_strength, :sprite, :player_render, :player_x, :player_y, :selected, :border_alpha, :armor
   def initialize
     @max_health = 30
@@ -769,6 +837,7 @@ class Player
 end
 
 class UI
+	prepend Serialize
   attr_accessor :end_turn_button, :end_turn_label, :end_turn, :play_area, :play
 
   def initialize
@@ -811,6 +880,7 @@ class UI
 end
 
 class Game
+	prepend Serialize
   attr_accessor :hand, :level
 
   def initialize
@@ -1178,7 +1248,6 @@ class Game
   end
 
 end
-
 
 def tick args
   # On ~tick~, create a new instances of the Game class
