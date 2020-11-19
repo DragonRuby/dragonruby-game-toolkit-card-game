@@ -1,18 +1,14 @@
-class Sound
+class SoundButton < Button
   attr_reader :path, :title, :color, :rect, :index, :duration
-  @@size = [47, 47]
-  @@space = 5
 
-  def initialize title, path, duration, color = nil
-    @title = title
-    @color = color
+  def initialize label, path, duration, color = nil
+    @label = label
     @path = path
     @duration = duration
-    @rect = [0,0,0,0]
     color ? @color = color : rand_color
   end
 
-  def play sounds, tick_count
+  def press sounds, tick_count
     @playing = true
     @clicked_at = tick_count
     sounds << path
@@ -79,6 +75,7 @@ class Sound
   end
 
   def rand_color
+		puts "rand color"
     @color = [rand(256), rand(256), rand(256)]
   end
 
