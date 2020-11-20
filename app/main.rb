@@ -47,6 +47,7 @@
 # increase health gains as time goes on
 # Increase enemy health and damage
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+URL = 'http://localhost:3000/'
 
 ##
 # Prepend to a class to add serialization and deserialization
@@ -70,12 +71,18 @@ module Serialize
 
 	# Recursively deserialize arbitrary objects
 	def deserialize vars
+		# Remove any current instance variables
+		instance_variables.each { |e| remove_instance_variable(e) }
 		# Loop through input and set to instance variables
 		vars.each do |var, val|
 			val.transform_keys!(&:to_sym)
 			klass = Kernel.const_get(val[:class])
 			# Recursively deserialize
-			val[:value] = klass.new(val[:value], serial: true) if klass.instance_methods.include?(:deserialize)
+			if [Array, Hash].include?(klass)
+				val[:value].deserialize
+			elsif klass.instance_methods.include?(:deserialize)
+				val[:value] = klass.new(val[:value], serial: true)
+			end
 			instance_variable_set(var.to_sym, val[:value])
 		end unless vars.nil?
 	end
@@ -95,6 +102,59 @@ module Serialize
 		serialize.to_s
 	end
 	alias :inspect :to_s
+end
+
+##
+# Custom serialization and deserialization for Arrays and Hashes
+# The work differently than most other objects so the generic approach doesn't work
+##
+
+class Array
+	def deserialize
+		map! do |val|
+			val.transform_keys!(&:to_sym)
+			klass = Kernel.const_get(val[:class])
+			# Recursively deserialize
+			if [Array, Hash].include?(klass)
+				val[:value].deserialize
+			elsif klass.instance_methods.include?(:deserialize)
+				val[:value] = klass.new(val[:value], serial: true)
+			end
+			val[:value]
+		end
+	end
+	
+	def serialize
+		map do |val|
+			klass = val.class.name
+			val = val.serialize if val.respond_to?(:serialize)
+			{ class: klass, value: val }
+		end
+	end
+end
+
+class Hash
+	def deserialize
+		transform_values! do |val|
+			val.transform_keys!(&:to_sym)
+			klass = Kernel.const_get(val[:class])
+			# Recursively deserialize
+			if [Array, Hash].include?(klass)
+				val[:value].deserialize
+			elsif klass.instance_methods.include?(:deserialize)
+				val[:value] = klass.new(val[:value], serial: true)
+			end
+			val[:value]
+		end
+	end
+
+	def serialize
+		transform_values do |val|
+			klass = val.class.name
+			val = val.serialize if val.respond_to?(:serialize)
+			{ class: klass, value: val }
+		end
+	end
 end
 
 class Cards
@@ -544,7 +604,6 @@ class Enemy
   attr_accessor :name, :max_health, :health, :armor, :sprite, :number_of_actions, :pos_x, :pos_y, :width, :height, :selected, :border_alpha, :strength, :info_alpha, :move
 
   def initialize
-		puts "init Enemy"
     @selected = false
     @border_alpha = 0
     @strength = 0
@@ -900,6 +959,8 @@ class Game
     render args
     inputs args
     calc args
+		state_download
+		state_upload
   end
 
   #Defaults
@@ -941,6 +1002,16 @@ class Game
     @enemiesOnScreen.inputs args
     @player.inputs args
     @UI.inputs args
+
+		if args.inputs.keyboard.key_down.i
+			# Import state
+			$gtk.args.state.state_download = $gtk.http_get(URL + 'state')
+		end
+
+		if args.inputs.keyboard.key_down.o
+			# Export state
+			$gtk.args.state.state_upload = $gtk.http_post(URL + 'state', { data: $gtk.serialize_state($game.serialize) }, ['Content-Type: application/x-www-form-urlencoded'])
+		end
     # if(args.inputs.mouse.down)
     #   @enemiesOnScreen.enemies.items.each do |enemy|
     #     if((args.inputs.mouse.click.inside_rect? @player.player_render) && (enemy.selected))
@@ -1243,10 +1314,36 @@ class Game
     else
       @enemiesOnScreen.enemies.items << KingBlob.new(850, 260)
     end
-
-
   end
 
+	def state_download
+		download = $gtk.args.state.state_download
+		return if download.nil?
+
+		if download[:complete]
+			if download[:http_response_code] == 200
+				new_state = $gtk.deserialize_state(download[:response_data])
+				$game.deserialize(new_state)
+			else
+				puts "ERROR downloading state. Response code: #{download[:http_response_code]}"
+			end
+			$gtk.args.state.state_download = nil
+		end
+	end
+
+	def state_upload
+		upload = $gtk.args.state.state_upload
+		return if upload.nil?
+
+		if upload[:complete]
+			if upload[:http_response_code] == 204
+				puts "Successfully uploaded state."
+			else
+				puts "ERROR uploading state. Response code: #{upload[:http_response_code]}"
+			end
+			$gtk.args.state.state_upload = nil
+		end
+	end
 end
 
 def tick args
