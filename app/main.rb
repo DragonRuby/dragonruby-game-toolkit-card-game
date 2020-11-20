@@ -432,11 +432,13 @@ class Hand
 
   def render args
     @cards.items.each_with_index do |card, i|
-      if(card.selected)
-        card.setDisplay(args.inputs.mouse.x - card.dx, args.inputs.mouse.y - card.dy, card.width, card.height)
-      else
-        card.setDisplay(((i+1)*100)+250, 75, 64, 108)
-      end
+			unless $gtk.args.state.watching # Card pos is already set if watching
+				if(card.selected)
+					card.setDisplay(args.inputs.mouse.x - card.dx, args.inputs.mouse.y - card.dy, card.width, card.height)
+				else
+					card.setDisplay(((i+1)*100)+250, 75, 64, 108)
+				end
+			end
       args.outputs.sprites << card.render
       args.outputs.labels << [card.pos_x, card.pos_y + 203, "#{card.title}", 0, 0, 0, card.info_alpha]
       args.outputs.labels << [card.pos_x, card.pos_y + 178, "#{card.description}", 0, 0, 0, card.info_alpha]
@@ -956,11 +958,16 @@ class Game
 
   # this is the entry point for Game (which is the ~tick~ method).
   def tick args
+		network
+		if $gtk.args.state.watching && @mouse
+			args.inputs.mouse.x = @mouse[:x]
+			args.inputs.mouse.y = @mouse[:y]
+		end
     render args
-    inputs args
-    calc args
-		state_download
-		state_upload
+		unless $gtk.args.state.watching
+			inputs args
+			calc args
+		end
   end
 
   #Defaults
@@ -1004,13 +1011,11 @@ class Game
     @UI.inputs args
 
 		if args.inputs.keyboard.key_down.i
-			# Import state
-			$gtk.args.state.state_download = $gtk.http_get(URL + 'state')
+			$gtk.args.state.watching = true
 		end
 
 		if args.inputs.keyboard.key_down.o
-			# Export state
-			$gtk.args.state.state_upload = $gtk.http_post(URL + 'state', { data: $gtk.serialize_state($game.serialize) }, ['Content-Type: application/x-www-form-urlencoded'])
+			$gtk.args.state.watching = false
 		end
     # if(args.inputs.mouse.down)
     #   @enemiesOnScreen.enemies.items.each do |enemy|
@@ -1316,6 +1321,26 @@ class Game
     end
   end
 
+	def network
+		return unless $gtk.args.state.tick_count % 30 == 29
+		if $gtk.args.state.watching
+			import_state if $gtk.args.state.state_download.nil?
+			state_download
+		else
+			export_state if $gtk.args.state.state_upload.nil?
+			state_upload
+		end
+	end
+
+	def import_state
+		$gtk.args.state.state_download = $gtk.http_get(URL + 'state')
+	end
+
+	def export_state
+		@mouse = { x: $gtk.args.inputs.mouse.x, y: $gtk.args.inputs.mouse.y }
+		$gtk.args.state.state_upload = $gtk.http_post(URL + 'state', { data: $gtk.serialize_state($game.serialize) }, ['Content-Type: application/x-www-form-urlencoded'])
+	end
+
 	def state_download
 		download = $gtk.args.state.state_download
 		return if download.nil?
@@ -1336,9 +1361,7 @@ class Game
 		return if upload.nil?
 
 		if upload[:complete]
-			if upload[:http_response_code] == 204
-				puts "Successfully uploaded state."
-			else
+			unless upload[:http_response_code] == 204
 				puts "ERROR uploading state. Response code: #{upload[:http_response_code]}"
 			end
 			$gtk.args.state.state_upload = nil
