@@ -1145,10 +1145,17 @@ class Game
 
 		if args.inputs.keyboard.key_down.i
 			$gtk.args.state.watching = true
+			$gtk.args.state.sending = false
 		end
 
 		if args.inputs.keyboard.key_down.o
 			$gtk.args.state.watching = false
+			$gtk.args.state.sending = true
+		end
+
+		if args.inputs.keyboard.key_down.p
+			$gtk.args.state.watching = false
+			$gtk.args.state.sending = false
 		end
     # if(args.inputs.mouse.down)
     #   @enemiesOnScreen.enemies.items.each do |enemy|
@@ -1517,11 +1524,10 @@ class Game
   end
 
 	def network
-		return unless $gtk.args.state.tick_count % 30 == 29
 		if $gtk.args.state.watching
 			import_state if $gtk.args.state.state_download.nil?
 			state_download
-		else
+		elsif $gtk.args.state.sending
 			export_state if $gtk.args.state.state_upload.nil?
 			state_upload
 		end
