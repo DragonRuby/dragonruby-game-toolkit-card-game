@@ -53,11 +53,15 @@ class SoundBoard
 		# O sends the game state to a server
 		if inputs.keyboard.key_down.o
 			export_state
+			state.last_pressed = 'O'
+			state.last_pressed_at = args.tick_count
 		end
 
 		# I pulls the game state from a server
 		if inputs.keyboard.key_down.i
 			import_state
+			state.last_pressed = 'I'
+			state.last_pressed_at = args.tick_count
 		end
   end
 
@@ -83,6 +87,8 @@ class SoundBoard
   def render
 		# Render FPS
     outputs.labels << [1200, 710, $gtk.current_framerate] if state.verbose
+		# Render last pressed button
+		outputs.labels << [10, 710, "Last Pressed: #{state.last_pressed} at #{state.last_pressed_at}"]
     # Render buttons
     state.buttons.each do |btn|
       btn.render
@@ -93,6 +99,8 @@ class SoundBoard
   def init
     state.did_init = true
     state.verbose = true
+		state.last_pressed ||= 'None'
+		state.last_pressed_at ||= 0
     state.buttons = []
 		# Choose the pattern
     formula = case state.pattern
@@ -182,6 +190,7 @@ class SoundBoard
 
 		if args.state.state_download[:complete]
 			if args.state.state_download[:http_response_code] == 200
+				pressed = [state.last_pressed, state.last_pressed_at]
 				parsed_state = $gtk.deserialize_state(args.state.state_download[:response_data])
 				throw StandardError 'Invalid state.' unless parsed_state
 				parsed_state.buttons.map! do |btn|
@@ -189,6 +198,8 @@ class SoundBoard
 				end.compact!
 				args.state = parsed_state
 				add_reset_and_pattern_btns
+				$gtk.args.state.last_pressed = pressed[0]
+				$gtk.args.state.last_pressed_at = pressed[1]
 			end
 			args.state.state_download = nil
 			args.state.state_upload = nil
