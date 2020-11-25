@@ -155,7 +155,7 @@ class SoundBoard
 	# 	Returns a callback (let's call it `response`, so check it each tick until `response[:complete]` is true
 	# 	then the response data is in `response[:response_data]`
 	def export_state
-		args.state.state_upload = $gtk.http_post(URL + 'state', { data: 'test shorter state' }) #$gtk.serialize_state(args.state).to_s })# ['Content-Type: text/plain'])
+		args.state.state_upload = $gtk.http_post(URL + 'state', { data: $gtk.serialize_state(args.state).to_s })# ['Content-Type: text/plain'])
 	end
 
 	def upload_state
@@ -178,9 +178,7 @@ class SoundBoard
 	end
 
 	def download_state
-		return
 		return if args.state.state_download.nil?
-		puts args.state.state_download.to_s
 
 		if args.state.state_download[:complete]
 			if args.state.state_download[:http_response_code] == 200
@@ -193,6 +191,7 @@ class SoundBoard
 				add_reset_and_pattern_btns
 			end
 			args.state.state_download = nil
+			args.state.state_upload = nil
 		end
 	end
 end
