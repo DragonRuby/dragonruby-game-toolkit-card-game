@@ -429,7 +429,7 @@ class Hand
   def initialize
     @cards = Cards.new([])
   end
-
+	
   def render args
     @cards.items.each_with_index do |card, i|
 			unless $gtk.args.state.watching # Card pos is already set if watching
@@ -689,8 +689,6 @@ class GreenBlob < Enemy
         end
       end
     end
-
-
   end
 
   #decreases the player's health
