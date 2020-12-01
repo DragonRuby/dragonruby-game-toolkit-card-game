@@ -1,13 +1,7 @@
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-# PICKING BACK UP:
-#
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # Questions/ known issues:
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # TODO:
-#   Remove comments and clean up code
-#     -Change order of card attr_accessor
-#   Remove any deprecated methods
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # EXTRAS:
 #   Mousing over player, enemy, or card makes them bigger/ shows they are being hovered over (with a green border)? (Mostly DONE)
@@ -140,6 +134,7 @@ end
 class Cards
 	prepend Serialize
   attr_accessor :items, :selected_card_history
+
   def initialize(items) #array
     @items = items
     @selected_card_history = []
@@ -155,43 +150,35 @@ class Card
     @on_screen, @selected, @moused_over = false
     @info_alpha = 0
   end
+
 	alias :name :title
+
   def render
     [@pos_x, @pos_y, @width, @height, @sprite]
   end
+
   def setDisplay(x, y, w, h)
     @pos_x = x
     @pos_y = y
     @width = w
     @height = h
   end
+
   def select(args)
     if(!@selected)
       @dx = args.inputs.mouse.x - @pos_x
       @dy = args.inputs.mouse.y - @pos_y
       @selected = true
-    # elsif(@selected)
-    #   @selected = false
     end
   end
-  # def select mouse_x, mouse_y, card
-  #   if(!@selected)
-  #     @dx = mouse_x - @pos_x
-  #     @dy = mouse_y - @pos_y
-  #     card.setDisplay(@dx, @dy, @width, @height)
-  #     #@pos_y += 50
-  #     @selected = true
-  #   elsif(@selected)
-  #     @pos_y -= 50
-  #     @selected = false
-  #   end
-  # end
+
   def deselect
     @selected = false
   end
 end
 class ArmorCard < Card
 	prepend Serialize
+
   def initialize
     super()
     @title = "Armor"
@@ -200,6 +187,7 @@ class ArmorCard < Card
     @sprite = 'sprites/card-armor-base.png'
     @cost = 1
   end
+
   def action(player)
     player.armor += 3
   end
@@ -213,10 +201,8 @@ class AttackCard < Card
     @description = "Deal \n5 damage \nto an enemy"
     @sprite = 'sprites/card-attack-base.png'
     @cost = 1
-    # @pos_x, @pos_y, @length, @height = nil
-    # @on_screen, @selected = false
-    # @info_alpha = 0
   end
+
   def action(target, player)
     target.health -= (5 + player.strength)
   end
@@ -230,13 +216,12 @@ class DeadCard < Card
     @description = "Takes up space in the player's hand and deck"
     @sprite = 'sprites/card-dead.png'
     @cost = 1
-    # @pos_x, @pos_y, @length, @height = nil
-    # @on_screen, @selected = false
   end
 end
 class DrawCard < Card
 	prepend Serialize
   attr_accessor :amount
+
   def initialize
     super()
     @title = "Draw 2"
@@ -245,9 +230,8 @@ class DrawCard < Card
     @sprite = 'sprites/card-draw-base.png'
     @cost = 2
     @amount = 2
-    # @pos_x, @pos_y, @length, @height = nil
-    # @on_screen, @selected = false
   end
+
   def action(target, card)
     target.addCard(card)
   end
@@ -262,6 +246,7 @@ class EnergyCard < Card
     @sprite = 'sprites/card-energy-base.png'
     @cost = 0
   end
+
   def action(target)
     target.energy += 1
   end
@@ -276,6 +261,7 @@ class HealCard < Card
     @sprite = 'sprites/card-heal-base.png'
     @cost = 1
   end
+
   def action(target)
     target.health += 5
     if(target.health > target.max_health)
@@ -293,6 +279,7 @@ class StrengthCard < Card
     @sprite = 'sprites/card-strength-base.png'
     @cost = 2
   end
+
   def action(target)
     target.strength += 2
   end
@@ -361,12 +348,6 @@ class Discard
     @discard_label_alpha = 0
   end
 
-  def shuffle
-    @cards.items.each_with_index do |card, i|
-      $PlayerDeck.cards << @cards.items[i]
-    end
-  end
-
   def render args
     discard_x ||= 1150
     discard_y ||= 40
@@ -423,22 +404,11 @@ class Hand
 				end
 			end
       args.outputs.sprites << card.render
-      #args.outputs.labels << [card.pos_x + 34, card.pos_y + 115, "#{card.title}", 0, 0, 0, card.info_alpha]
-      #args.outputs.labels << [card.pos_x + 15, card.pos_y + 85, "#{card.description}", 0, 0, 0, card.info_alpha]
-      #args.outputs.labels << [card.pos_x + 20, card.pos_y + 35, "Cost: #{card.cost}", 0, 0, 0, card.info_alpha]
     end
   end
 
   def addCard card
     @cards.items << card
-  end
-
-  #Deprecated
-  def draw_start
-    for i in 1..3 do
-      x = rand($PlayerDeck.cards.length)
-      @cards.items << $PlayerDeck.cards[x]
-    end
   end
 
   def debug_hand args
@@ -454,40 +424,11 @@ class Hand
   end
 
   def inputs args
-    # if args.inputs.mouse.down && (@cards.items.length > 0)
-    #   found_card = @cards.items.find {|card| args.inputs.mouse.click.point.inside_rect? card.render}
-    #   if(found_card)
-    #     @cards.items.each(&:deselect)
-    #     if(@cards.selected_card_history.last != found_card)
-    #       found_card.select
-    #       @cards.selected_card_history << found_card
-    #     else
-    #       @cards.selected_card_history = @cards.selected_card_history[0..-2]
-    #     end
-    #   end
-    # end
-
-    # if args.inputs.mouse.button_left && (@cards.items.length > 0) && args.inputs.mouse.click
-    #   found_card = @cards.items.find {|card| args.inputs.mouse.click.point.inside_rect? card.render}
-    #   if(found_card)
-    #     @cards.items.each(&:deselect)
-    #     if(@cards.selected_card_history.last != found_card)
-    #       #found_card.select(args.inputs.mouse.x, args.inputs.mouse.y, found_card)
-    #       found_card.select args
-    #       @cards.selected_card_history << found_card
-    #     else
-    #       @cards.selected_card_history = @cards.selected_card_history[0..-2]
-    #     end
-    #   end
-    # end
     if args.inputs.mouse.button_left && (@cards.items.length > 0) && args.inputs.mouse.click
       found_card = @cards.items.find {|card| args.inputs.mouse.click.point.inside_rect? card.render}
       if(found_card)
-        #@cards.items.each(&:deselect)
         if(@cards.selected_card_history.last != found_card)
-          #found_card.select(args.inputs.mouse.x, args.inputs.mouse.y, found_card)
           found_card.select args
-          #@cards.selected_card_history << found_card
         else
           @cards.selected_card_history = @cards.selected_card_history[0..-2]
         end
@@ -535,19 +476,6 @@ class EnemiesOnScreen
   end
 
   def inputs args
-    # if args.inputs.mouse.down && (@enemies.items.length > 0)
-    #   found_enemy = @enemies.items.find {|enemy| args.inputs.mouse.click.point.inside_rect? enemy.enemy_render}
-    #   if(found_enemy)
-    #     @enemies.items.each(&:deselect)
-    #     if(@enemies.selected_enemy_history.last != found_enemy)
-    #       found_enemy.select
-    #       @enemies.selected_enemy_history << found_enemy
-    #     else
-    #       @enemies.selected_enemy_history = @enemies.selected_enemy_history[0..-2]
-    #     end
-    #   end
-    # end
-
     if args.inputs.mouse.up && (@enemies.items.length > 0)
       found_enemy = @enemies.items.find {|enemy| args.inputs.mouse.up.point.inside_rect? enemy.enemy_render}
       if(found_enemy)
@@ -584,62 +512,7 @@ class EnemiesOnScreen
       args.outputs.labels << [ enemy.pos_x, enemy.pos_y + 150, "Enemy Health: #{enemy.health}/#{enemy.max_health}" ]
       args.outputs.borders << [enemy.pos_x - 10, enemy.pos_y - 10, enemy.width + 20, enemy.height + 20, 255, 0, 0, enemy.border_alpha]
       args.outputs.labels << [enemy.pos_x, enemy.pos_y - 30, "Enemy Strength: #{enemy.strength}", 0, 0, 0, enemy.info_alpha]
-      if(enemy.move_up == true)
-        if args.state.tick_count.mod_zero? 30
-          # 25.times do
-          #   enemy.pos_y += 3
-          # end
-          # if(!enemy.moved_up)
-          #   while enemy.pos_y < 300
-          #     enemy.pos_y += 2
-          #   end
-          #   enemy.moved_up = true
-          # elsif (enemy.moved_up)
-          #   while enemy.pos_y > 260
-          #     enemy.pos_y -= 2
-          #   end
-          #   enemy.moved_up = false
-          # end
-          while enemy.pos_y < 300
-            enemy.pos_y += 2
-          end
-          enemy.move_up = false
-        end
-        # if args.state.tick_count.mod_zero? 50
-        #   25.times do
-        #     enemy.pos_y -= 3
-        #   end
-        # end
-        #sleep(3)
-        # 25.times do
-        #   enemy.pos_y -= 2.9
-        #   enemy.setDisplay(enemy.pos_x, enemy.pos_y, 100, 100)
-        # end
-        #enemy.move = false
 
-      end
-      if(enemy.move_down == true)
-        if args.state.tick_count.mod_zero? 30
-          # 25.times do
-          #   enemy.pos_y += 3
-          # end
-          # if(!enemy.moved_up)
-          #   while enemy.pos_y < 300
-          #     enemy.pos_y += 2
-          #   end
-          #   enemy.moved_up = true
-          # elsif (enemy.moved_up)
-          #   while enemy.pos_y > 260
-          #     enemy.pos_y -= 2
-          #   end
-          #   enemy.moved_up = false
-          # end
-          while enemy.pos_y > 260
-            enemy.pos_y -= 2
-          end
-          enemy.move_down = false
-        end
-      end
       # 1. When to start the animation.
       start_looping_at = 0
       # 2. The number of pngs that represent the full animation.
@@ -663,14 +536,15 @@ class EnemiesOnScreen
       else
         enemy.setDisplay(enemy.pos_x, enemy.pos_y, 120, 90)
       end
-      #Player display
+
       args.outputs.sprites << enemy.enemy_render
     end
   end
 end
 class Enemy
-  attr_accessor :name, :max_health, :health, :armor, :sprite, :number_of_actions, :pos_x, :pos_y, :width, :height, :selected, :border_alpha, :strength, :info_alpha
-  attr_accessor :move, :moved_up, :move_up, :move_down, :action_1_alpha, :action_2_alpha, :action_3_alpha, :id
+  attr_accessor :name, :max_health, :health, :armor, :sprite, :number_of_actions, :strength, :id
+  attr_accessor :pos_x, :pos_y, :width, :height, :selected,
+  attr_accessor :border_alpha, :info_alpha, :action_1_alpha, :action_2_alpha, :action_3_alpha
 
   def initialize
     @selected = false
@@ -679,10 +553,8 @@ class Enemy
     @action_1_alpha = 0
     @action_2_alpha = 0
     @action_3_alpha = 0
+    #The action alphas did not work correctly when they were on the same line. No idea why
     @strength = 0
-    @moved_up = false
-    @move_up, @move_down = false
-    @move = false
     @sprite = "sprites/slimes/#{@id}-idle-0.png"
   end
   def enemy_render
@@ -697,7 +569,6 @@ class Enemy
   def select
     if(!@selected)
       @selected = true
-      #$gtk.notify! "Enemy is selected"
       @border_alpha = 128
     elsif(@selected)
       @selected = false
@@ -789,7 +660,6 @@ class KingBlob < Enemy
     @max_health = 60
     @health = @max_health
     @armor = 0
-    #@sprite = "sprites/slimes/#{@id}-idle-0.png"
     @pos_x = x
     @pos_y = y
     @length = 300
@@ -854,7 +724,6 @@ class RedBlob < Enemy
     @max_health = 20
     @health = @max_health
     @armor = 0
-    #@sprite = "sprites/slimes/#{@id}-idle-0.png"
     @pos_x = x
     @pos_y = y
     @length = 100
@@ -928,7 +797,6 @@ class Player
   def select
     if(!@selected)
       @selected = true
-      #$gtk.notify! "Player is selected"
       @border_alpha = 255
     elsif(@selected)
       deselect
@@ -1022,7 +890,6 @@ class UI
   attr_accessor :end_turn_button, :end_turn_label, :end_turn, :play_area, :play, :game_over, :game_over_alpha, :start_over
 
   def initialize
-    #@end_turn_button = [400, 15, 300, 50, 0, 0, 255, 255]
     @end_turn_button = [400, 15, 300, 50, "sprites/square-blue.png"]
     @play_area = [150, 275, 600, 400, 0, 0, 0, 0]
     @end_turn_label = [500, 45, "End Turn"]
@@ -1032,7 +899,6 @@ class UI
   end
 
   def render args
-    #args.outputs.solids << @end_turn_button
     args.outputs.sprites << @end_turn_button
     args.outputs.borders << @play_area
     args.outputs.labels << @end_turn_label
@@ -1119,19 +985,6 @@ class Game
     @enemiesOnScreen.render args
     @UI.render args
     args.outputs.labels << [450, 700, "Level: #{@level}"]
-
-    #Temporary Draw Button in the top right-hand corner
-    # draw = [1150, 650, 200, 100, 180, 0, 0, 360]
-    # args.outputs.solids << draw
-    # if args.inputs.mouse.click
-    #   if args.inputs.mouse.click.point.inside_rect? draw
-    #     if(!@deck.isEmpty)
-    #       x = rand(@deck.cards.items.length)
-    #       @hand.addCard(@deck.cards.items[x])
-    #       @deck.cards.items.delete_at(x)
-    #     end
-    #   end
-    # end
   end
 
   #Hadles mouse and keyboard inputs
@@ -1157,18 +1010,6 @@ class Game
 			$gtk.args.state.watching = false
 			$gtk.args.state.sending = false
 		end
-    # if(args.inputs.mouse.down)
-    #   @enemiesOnScreen.enemies.items.each do |enemy|
-    #     if((args.inputs.mouse.click.inside_rect? @player.player_render) && (enemy.selected))
-    #       @enemiesOnScreen.enemies.items.each do |enemy|
-    #         enemy.deselect
-    #       end
-    #     elsif((args.inputs.mouse.click.inside_rect? enemy.enemy_render) && (@player.selected))
-    #       @player.deselect
-    #       enemy.select
-    #     end
-    #   end
-    # end
   end
 
   #Handles the logic of the game
@@ -1256,105 +1097,6 @@ class Game
               @player.deselect
               @UI.played
             end
-
-          # when "base_attack"
-          #   if(enemy.selected)
-          #     card.action(enemy, @player)
-          #     @player.energy -= card.cost
-          #     card.deselect
-          #     enemy.deselect
-          #     @discard.addCard(card)
-          #     @hand.cards.items.delete(card)
-          #     enemy.deselect
-          #     @player.deselect
-          #   end
-          #
-          # when "base_heal"
-          #   if(@player.selected || @UI.play)
-          #     card.action(@player)
-          #     @player.energy -= card.cost
-          #     card.deselect
-          #     enemy.deselect
-          #     @discard.addCard(card)
-          #     @hand.cards.items.delete(card)
-          #     enemy.deselect
-          #     @player.deselect
-          #     @UI.played
-          #   end
-          #
-          # when "base_strength"
-          #   if(@player.selected || @UI.play)
-          #     card.action(@player)
-          #     @player.energy -= card.cost
-          #     card.deselect
-          #     enemy.deselect
-          #     @discard.addCard(card)
-          #     @hand.cards.items.delete(card)
-          #     enemy.deselect
-          #     @player.deselect
-          #     @UI.played
-          #   end
-          #
-          # when "dead_card"
-          #   if(@player.selected || @UI.play)
-          #     @player.energy -= card.cost
-          #     card.deselect
-          #     enemy.deselect
-          #     @hand.cards.items.delete(card)
-          #     enemy.deselect
-          #     @player.deselect
-          #     @UI.played
-          #   end
-          #
-          # when "base_draw"
-          #   if(@player.selected || @UI.play)
-          #     2.times do
-          #       if(!@deck.isEmpty)
-          #         x = rand(@deck.cards.items.length)
-          #         card.action(@hand, @deck.cards.items[x])
-          #         @deck.cards.items.delete_at(x)
-          #       else
-          #         reshuffle_deck
-          #         x = rand(@deck.cards.items.length)
-          #         card.action(@hand, @deck.cards.items[x])
-          #         @deck.cards.items.delete_at(x)
-          #       end
-          #     end
-          #     @player.energy -= card.cost
-          #     card.deselect
-          #     enemy.deselect
-          #     @discard.addCard(card)
-          #     @hand.cards.items.delete(card)
-          #     enemy.deselect
-          #     @player.deselect
-          #     @UI.played
-          #   end
-          #
-          # when "base_energy"
-          #   if(@player.selected || @UI.play)
-          #     card.action(@player)
-          #     @player.energy -= card.cost
-          #     card.deselect
-          #     enemy.deselect
-          #     @discard.addCard(card)
-          #     @hand.cards.items.delete(card)
-          #     enemy.deselect
-          #     @player.deselect
-          #     @UI.played
-          #   end
-          #
-          # when "base_armor"
-          #   if(@player.selected || @UI.play)
-          #     card.action(@player)
-          #     @player.energy -= card.cost
-          #     card.deselect
-          #     enemy.deselect
-          #     @discard.addCard(card)
-          #     @hand.cards.items.delete(card)
-          #     enemy.deselect
-          #     @player.deselect
-          #     @UI.played
-          #   end
           end
         end
       end
@@ -1393,15 +1135,8 @@ class Game
 
       #Enemies do their actions
       @enemiesOnScreen.enemies.items.each do |enemy|
-        # if args.state.tick_count.mod_zero? 10
-        #   enemy.move = true
-        #   enemy.turn @player, @deck, @enemiesOnScreen.enemies.items
-        # end
-        #enemy.animation
-
         #Performs the enemies action(s). The three parameters are what might be influenced by the attacks
         enemy.turn @player, @deck, @enemiesOnScreen.enemies.items
-        #sleep(3)
       end
 
 
