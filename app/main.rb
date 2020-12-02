@@ -543,7 +543,7 @@ class EnemiesOnScreen
 end
 class Enemy
   attr_accessor :name, :max_health, :health, :armor, :sprite, :number_of_actions, :strength, :id
-  attr_accessor :pos_x, :pos_y, :width, :height, :selected,
+  attr_accessor :pos_x, :pos_y, :width, :height, :selected
   attr_accessor :border_alpha, :info_alpha, :action_1_alpha, :action_2_alpha, :action_3_alpha
 
   def initialize
